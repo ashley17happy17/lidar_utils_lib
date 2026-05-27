@@ -4,7 +4,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-namespace pc_utils {
+namespace lidar_utils {
 
 class CloudUtils {
 public:
@@ -51,4 +51,4 @@ public:
                          float voxelSize);
 };
 
-} // namespace pc_utils
+} // namespace lidar_utils

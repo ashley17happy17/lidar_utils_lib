@@ -2,9 +2,9 @@
 #include <Eigen/Dense>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include "pc_utils/types.hpp"
+#include "lidar_utils/types.hpp"
 
-namespace pc_utils {
+namespace lidar_utils {
 namespace internal {
 
 void executeMotionAndDG(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
@@ -13,4 +13,4 @@ void executeMotionAndDG(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
                         bool motionEnable);
 
 } // namespace internal
-} // namespace pc_utils
+} // namespace lidar_utils

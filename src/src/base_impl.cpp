@@ -1,7 +1,7 @@
 #include "internal/base_impl.hpp"
 #include <pcl/filters/crop_box.h> // 引入 PCL 官方的 CropBox 濾波器
 
-namespace pc_utils {
+namespace lidar_utils {
 namespace internal {
 
 void executeCrop(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
@@ -47,4 +47,4 @@ void mergeCloud(pcl::PointCloud<pcl::PointXYZI>::Ptr &base_cloud,
                 float voxelSize) {}
 
 } // namespace internal
-} // namespace pc_utils
+} // namespace lidar_utils

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace pc_utils {
+namespace lidar_utils {
 
 // 支援的光達型號選單
 enum class SensorType {
@@ -10,4 +10,4 @@ enum class SensorType {
   VELODYNE_VLS128
 };
 
-} // namespace pc_utils
+} // namespace lidar_utils

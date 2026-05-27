@@ -3,7 +3,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-namespace pc_utils {
+namespace lidar_utils {
 namespace internal {
 void executeCrop(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
                  const Eigen::Vector3f &minBound,
@@ -20,4 +20,4 @@ void mergeCloud(pcl::PointCloud<pcl::PointXYZI>::Ptr &base_cloud,
                 float voxelSize);
 
 } // namespace internal
-} // namespace pc_utils
+} // namespace lidar_utils

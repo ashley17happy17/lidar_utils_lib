@@ -12,10 +12,10 @@ find_package(Eigen3 REQUIRED)
 file(GLOB_RECURSE SRC_FILES "src/*.cpp")
 
 # 建立靜態程式庫
-add_library(pc_utils STATIC ${SRC_FILES})
+add_library(lidar_utils STATIC ${SRC_FILES})
 
 # 設定頭文件路徑：將 include 設為 PUBLIC 分享給外部，src 設為 PRIVATE 鎖在內部
-target_include_directories(pc_utils 
+target_include_directories(lidar_utils 
     PUBLIC 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         ${PCL_INCLUDE_DIRS}
@@ -23,7 +23,7 @@ target_include_directories(pc_utils
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(pc_utils PUBLIC 
+target_link_libraries(lidar_utils PUBLIC 
     ${PCL_LIBRARIES} 
     Eigen3::Eigen
 )

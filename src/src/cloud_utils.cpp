@@ -1,9 +1,9 @@
-#include "pc_utils/cloud_utils.hpp"
+#include "lidar_utils/cloud_utils.hpp"
 #include "internal/base_impl.hpp"
 #include "internal/motion_impl.hpp"
 #include "internal/reorder_impl.hpp"
 
-namespace pc_utils {
+namespace lidar_utils {
 
 void CloudUtils::reorderCloud(CloudType::Ptr &cloud, SensorType sensorType) {
   // The internal implementation will modify 'cloud' in-place now
@@ -43,4 +43,4 @@ void CloudUtils::mergeCloud(CloudType::Ptr &base_cloud,
   }
 }
 
-} // namespace pc_utils
+} // namespace lidar_utils

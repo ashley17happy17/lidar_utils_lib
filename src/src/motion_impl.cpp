@@ -1,7 +1,7 @@
 #include "internal/motion_impl.hpp"
-#include "pc_utils/types.hpp"
+#include "lidar_utils/types.hpp"
 
-namespace pc_utils {
+namespace lidar_utils {
 namespace internal {
 void executeMotionAndDG(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
                         const Eigen::Matrix4d &posPrev,
@@ -9,4 +9,4 @@ void executeMotionAndDG(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
                         bool motionEnable) {}
 
 } // namespace internal
-} // namespace pc_utils
+} // namespace lidar_utils
