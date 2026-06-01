@@ -1,46 +1,130 @@
 #include "lidar_utils/cloud_utils.hpp"
-#include "internal/base_impl.hpp"
+#include "internal/common_impl.hpp"
+#include "internal/eop_impl.hpp"
+#include "internal/filter_impl.hpp"
+#include "internal/io_impl.hpp"
 #include "internal/motion_impl.hpp"
-#include "internal/reorder_impl.hpp"
+#include "internal/registration_impl.hpp"
 
 namespace lidar_utils {
 
-void CloudUtils::reorderCloud(CloudType::Ptr &cloud, SensorType sensorType) {
-  // The internal implementation will modify 'cloud' in-place now
-  internal::executeReorder(cloud, sensorType);
-}
-
-void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
-                                       const Eigen::Matrix4d &posPrev,
-                                       const Eigen::Matrix4d &posCurr,
-                                       SensorType sensorType,
-                                       bool motionEnable) {
-  // The internal implementation will overwrite 'cloud' with the compensated
-  // world cloud
-  internal::executeMotionAndDG(cloud, posPrev, posCurr, sensorType,
-                               motionEnable);
-}
-
-void CloudUtils::cropCloud(CloudType::Ptr &cloud,
-                           const Eigen::Vector3f &minBound,
-                           const Eigen::Vector3f &maxBound) {
-  internal::executeCrop(cloud, minBound, maxBound);
-}
-
-void CloudUtils::denoiseCloud(CloudType::Ptr &cloud, float denoiseThres) {
-  internal::executeDenoise(cloud, denoiseThres);
-}
-
-void CloudUtils::downsampleCloud(CloudType::Ptr &cloud, float voxelSize) {
-  internal::executeDownsample(cloud, voxelSize);
-}
-
+/***************************
+ *  common_impl            *
+ ***************************/
 void CloudUtils::mergeCloud(CloudType::Ptr &base_cloud,
                             const CloudType::ConstPtr &other_cloud,
                             float voxelSize) {
-  if (base_cloud && other_cloud) {
-    *base_cloud += *other_cloud; // PCL native efficient concatenation
-  }
+  internal::executeMergeCloud(base_cloud, other_cloud, voxelSize);
+}
+
+/***************************
+ *  eop_impl               *
+ ***************************/
+void CloudUtils::eopCalib(const Eigen::MatrixXd &la, const Eigen::MatrixXd &bs,
+                          const Eigen::Vector3d &laCalib,
+                          const Eigen::Vector3d &bsCalib) {
+  internal::executeEOPCalib(la, bs, laCalib, bsCalib);
+}
+
+/***************************
+ *  filter_impl            *
+ ***************************/
+void CloudUtils::cropCloud(CloudType::Ptr &cloud,
+                           const Eigen::Vector3f &minBound,
+                           const Eigen::Vector3f &maxBound) {
+  internal::executeCrop(cloud, minBound, maxBound, nullptr);
+}
+
+void CloudUtils::cropCloud(CloudType::Ptr &cloud,
+                           std::vector<double>& timestamps,
+                           const Eigen::Vector3f &minBound,
+                           const Eigen::Vector3f &maxBound) {
+  internal::executeCrop(cloud, minBound, maxBound, &timestamps);
+}
+
+void CloudUtils::denoiseCloud(CloudType::Ptr &cloud, float radius,
+                              float epsilon) {
+  internal::executeDenoise(cloud, radius, epsilon);
+}
+
+void CloudUtils::downsampleCloud(CloudType::Ptr &cloud, float voxelSize) {
+  internal::executeDownsample(cloud, voxelSize, nullptr);
+}
+
+void CloudUtils::downsampleCloud(CloudType::Ptr &cloud, std::vector<double>& timestamps, float voxelSize) {
+  internal::executeDownsample(cloud, voxelSize, &timestamps);
+}
+
+void CloudUtils::removeArtifact(CloudType::Ptr &cloud) {
+  internal::executeRemoveArtifact(cloud, nullptr);
+}
+
+void CloudUtils::removeArtifact(CloudType::Ptr &cloud, std::vector<double>& timestamps) {
+  internal::executeRemoveArtifact(cloud, &timestamps);
+}
+
+void CloudUtils::removeNaNCloud(CloudType::Ptr &cloud) {
+  internal::executeRemoveNaN(cloud, nullptr);
+}
+
+void CloudUtils::removeNaNCloud(CloudType::Ptr &cloud, std::vector<double>& timestamps) {
+  internal::executeRemoveNaN(cloud, &timestamps);
+}
+
+/***************************
+ *  io_impl                *
+ ***************************/
+void CloudUtils::readFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
+                          std::string &filepath, FileFormat format) {
+  internal::executeReadFile(cloud, filepath, format, nullptr);
+}
+
+void CloudUtils::readFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
+                          std::vector<double> &timestamps,
+                          std::string &filepath, FileFormat format) {
+  internal::executeReadFile(cloud, filepath, format, &timestamps);
+}
+
+void CloudUtils::saveFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
+                          std::string &filepath, FileFormat format) {
+  internal::executeSaveFile(cloud, filepath, format);
+}
+
+/***************************
+ *  motion_impl            *
+ ***************************/
+void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
+                                       const std::vector<double> &timestamps,
+                                       const Eigen::VectorXd &posPrev,
+                                       const Eigen::VectorXd &posCurr,
+                                       SensorType sensorType,
+                                       bool motionEnable) {
+  internal::executeMotionAndDG(cloud, timestamps, posPrev, posCurr, sensorType,
+                               motionEnable);
+}
+
+/***************************
+ *  registration_impl      *
+ ***************************/
+void CloudUtils::scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map,
+                                   Eigen::Matrix4f &in_transform,
+                                   Eigen::Matrix4f &out_transform,
+                                   float max_correspondence_distance,
+                                   float voxel_size, float score_threshold) {
+  internal::executeScanToMapMatching(cloud, map, in_transform, out_transform,
+                                     max_correspondence_distance, voxel_size,
+                                     score_threshold);
+}
+
+void CloudUtils::scanToScanMatching(CloudType::Ptr &cloud,
+                                    CloudType::Ptr &localmap,
+                                    Eigen::Matrix4f &in_transform,
+                                    Eigen::Matrix4f &out_transform,
+                                    float max_correspondence_distance,
+                                    float voxel_size, float score_threshold) {
+  internal::executeScanToScanMatching(
+      cloud, localmap, in_transform, out_transform, max_correspondence_distance,
+      voxel_size, score_threshold);
 }
 
 } // namespace lidar_utils

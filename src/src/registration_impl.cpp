@@ -1,0 +1,28 @@
+#include "internal/registration_impl.hpp"
+#include <pcl/common/transforms.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/registration/ia_ransac.h>
+#include <pcl/registration/icp.h>
+#include <pcl/registration/ndt.h>
+#include <pcl/search/kdtree.h>
+
+namespace lidar_utils {
+namespace internal {
+
+void executeScanToMapMatching(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
+                              pcl::PointCloud<pcl::PointXYZI>::Ptr &map,
+                              Eigen::Matrix4f &in_transform,
+                              Eigen::Matrix4f &out_transform,
+                              float max_correspondence_distance,
+                              float voxel_size, float score_threshold) {}
+
+void executeScanToScanMatching(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
+                               pcl::PointCloud<pcl::PointXYZI>::Ptr &localmap,
+                               Eigen::Matrix4f &in_transform,
+                               Eigen::Matrix4f &out_transform,
+                               float max_correspondence_distance,
+                               float voxel_size, float score_threshold) {}
+
+} // namespace internal
+} // namespace lidar_utils

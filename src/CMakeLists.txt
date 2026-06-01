@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 尋找 PCL 與 Eigen3 (這會直接抓取外部主專案目前正在使用的版本)
-find_package(PCL REQUIRED COMPONENTS common io filters)
+find_package(PCL REQUIRED COMPONENTS common io filters segmentation features search kdtree)
 find_package(Eigen3 REQUIRED)
 
 # 蒐集所有實作原始碼

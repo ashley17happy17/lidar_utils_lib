@@ -1,15 +1,17 @@
 #pragma once
+#include "lidar_utils/types.hpp"
 #include <Eigen/Dense>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include "lidar_utils/types.hpp"
+#include <vector>
 
 namespace lidar_utils {
 namespace internal {
 
 void executeMotionAndDG(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                        const Eigen::Matrix4d &posPrev,
-                        const Eigen::Matrix4d &posCurr, SensorType sensorType,
+                        const std::vector<double>& timestamps,
+                        const Eigen::VectorXd &posPrev,
+                        const Eigen::VectorXd &posCurr, SensorType sensorType,
                         bool motionEnable);
 
 } // namespace internal

@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <string>
 
 namespace lidar_utils {
 
@@ -12,20 +13,15 @@ public:
   using CloudType = pcl::PointCloud<PointType>;
 
   /**
-   * @brief 1. reorderCloud: Reorders point cloud in time sequence (In-place)
-   * @note Now changed to void! Modifies the input cloud directly.
+   * @brief 6. mergeCloud: Combines other_cloud into base_cloud (In-place)
    */
-  static void reorderCloud(CloudType::Ptr &cloud, SensorType sensorType);
+  static void mergeCloud(CloudType::Ptr &base_cloud,
+                         const CloudType::ConstPtr &other_cloud,
+                         float voxelSize);
 
-  /**
-   * @brief 2. motionCompensateAndDG: Compensates distortion and transforms to
-   * world frame (In-place)
-   * @note Changed to modify 'cloud' directly to match the toolbox style.
-   */
-  static void motionCompensateAndDG(CloudType::Ptr &cloud,
-                                    const Eigen::Matrix4d &posPrev,
-                                    const Eigen::Matrix4d &posCurr,
-                                    SensorType sensorType, bool motionEnable);
+  static void eopCalib(const Eigen::MatrixXd &la, const Eigen::MatrixXd &bs,
+                       const Eigen::Vector3d &laCalib,
+                       const Eigen::Vector3d &bsCalib);
 
   /**
    * @brief 3. cropCloud: Cuboid geometric cropping (In-place)
@@ -33,22 +29,64 @@ public:
   static void cropCloud(CloudType::Ptr &cloud, const Eigen::Vector3f &minBound,
                         const Eigen::Vector3f &maxBound);
 
+  static void cropCloud(CloudType::Ptr &cloud, std::vector<double>& timestamps,
+                        const Eigen::Vector3f &minBound,
+                        const Eigen::Vector3f &maxBound);
+
   /**
-   * @brief 4. denoiseCloud: Intensity threshold filtering (In-place)
+   * @brief 4. denoiseCloud: Guided Filter for denoising (In-place)
    */
-  static void denoiseCloud(CloudType::Ptr &cloud, float denoiseThres);
+  static void denoiseCloud(CloudType::Ptr &cloud, float radius, float epsilon);
 
   /**
    * @brief 5. downsampleCloud: Voxel grid downsampling (In-place)
    */
   static void downsampleCloud(CloudType::Ptr &cloud, float voxelSize);
 
-  /**
-   * @brief 6. mergeCloud: Combines other_cloud into base_cloud (In-place)
-   */
-  static void mergeCloud(CloudType::Ptr &base_cloud,
-                         const CloudType::ConstPtr &other_cloud,
-                         float voxelSize);
-};
+  static void downsampleCloud(CloudType::Ptr &cloud, std::vector<double>& timestamps, float voxelSize);
 
+  /**
+   * @brief 7. removeArtifact: Removes ghost artifacts (In-place)
+   */
+  static void removeArtifact(CloudType::Ptr &cloud);
+
+  static void removeArtifact(CloudType::Ptr &cloud, std::vector<double>& timestamps);
+
+  static void removeNaNCloud(CloudType::Ptr &cloud);
+
+  static void removeNaNCloud(CloudType::Ptr &cloud, std::vector<double>& timestamps);
+
+  static void readFile(CloudType::Ptr &cloud, std::string &filepath,
+                       FileFormat format);
+
+  static void readFile(CloudType::Ptr &cloud, std::vector<double> &timestamps,
+                       std::string &filepath, FileFormat format);
+
+  static void saveFile(CloudType::Ptr &cloud, std::string &filepath,
+                       FileFormat format);
+
+  /**
+   * @brief 2. motionCompensateAndDG: Compensates distortion and transforms to
+   * world frame (In-place)
+   * @note Changed to modify 'cloud' directly to match the toolbox style.
+   */
+  static void motionCompensateAndDG(CloudType::Ptr &cloud,
+                                    const std::vector<double> &timestamps,
+                                    const Eigen::VectorXd &posPrev,
+                                    const Eigen::VectorXd &posCurr,
+                                    SensorType sensorType, bool motionEnable);
+
+  static void scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map,
+                                Eigen::Matrix4f &in_transform,
+                                Eigen::Matrix4f &out_transform,
+                                float max_correspondence_distance,
+                                float voxel_size, float score_threshold);
+
+  static void scanToScanMatching(CloudType::Ptr &cloud,
+                                 CloudType::Ptr &localmap,
+                                 Eigen::Matrix4f &in_transform,
+                                 Eigen::Matrix4f &out_transform,
+                                 float max_correspondence_distance,
+                                 float voxel_size, float score_threshold);
+};
 } // namespace lidar_utils
