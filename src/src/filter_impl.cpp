@@ -120,59 +120,6 @@ void executeDenoise(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, float radius,
   *cloud = *cloud_copy;
 }
 
-void executeDownsample(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                       float voxelSize, std::vector<double> *timestamps) {
-  if (!cloud || cloud->empty())
-    return;
-
-  if (!timestamps) {
-    pcl::VoxelGrid<pcl::PointXYZI> ds;
-    ds.setLeafSize(voxelSize, voxelSize, voxelSize);
-    ds.setInputCloud(cloud);
-    ds.filter(*cloud);
-    return;
-  }
-
-  // Pack into PointXYZIT so VoxelGrid can average the timestamps!
-  pcl::PointCloud<lidar_utils::PointXYZIT>::Ptr temp_cloud(
-      new pcl::PointCloud<lidar_utils::PointXYZIT>());
-  temp_cloud->reserve(cloud->size());
-  for (size_t i = 0; i < cloud->size(); ++i) {
-    lidar_utils::PointXYZIT pt;
-    pt.x = cloud->points[i].x;
-    pt.y = cloud->points[i].y;
-    pt.z = cloud->points[i].z;
-    pt.intensity = cloud->points[i].intensity;
-    if (timestamps->size() > i) {
-      pt.time = (*timestamps)[i];
-    } else {
-      pt.time = 0.0;
-    }
-    temp_cloud->push_back(pt);
-  }
-
-  pcl::VoxelGrid<lidar_utils::PointXYZIT> ds;
-  ds.setLeafSize(voxelSize, voxelSize, voxelSize);
-  ds.setInputCloud(temp_cloud);
-  ds.filter(*temp_cloud);
-
-  // Unpack back into XYZI and timestamps array
-  cloud->clear();
-  timestamps->clear();
-  cloud->reserve(temp_cloud->size());
-  timestamps->reserve(temp_cloud->size());
-
-  for (const auto &pt : temp_cloud->points) {
-    pcl::PointXYZI p_xyzi;
-    p_xyzi.x = pt.x;
-    p_xyzi.y = pt.y;
-    p_xyzi.z = pt.z;
-    p_xyzi.intensity = pt.intensity;
-    cloud->push_back(p_xyzi);
-    timestamps->push_back(pt.time);
-  }
-}
-
 void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
                            std::vector<double> *timestamps) {
   if (!cloud || cloud->empty())
@@ -350,6 +297,59 @@ void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   *cloud = *filtered_cloud;
   if (timestamps) {
     *timestamps = std::move(filtered_timestamps);
+  }
+}
+
+void executeDownsample(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
+                       float voxelSize, std::vector<double> *timestamps) {
+  if (!cloud || cloud->empty())
+    return;
+
+  if (!timestamps) {
+    pcl::VoxelGrid<pcl::PointXYZI> ds;
+    ds.setLeafSize(voxelSize, voxelSize, voxelSize);
+    ds.setInputCloud(cloud);
+    ds.filter(*cloud);
+    return;
+  }
+
+  // Pack into PointXYZIT so VoxelGrid can average the timestamps!
+  pcl::PointCloud<lidar_utils::PointXYZIT>::Ptr temp_cloud(
+      new pcl::PointCloud<lidar_utils::PointXYZIT>());
+  temp_cloud->reserve(cloud->size());
+  for (size_t i = 0; i < cloud->size(); ++i) {
+    lidar_utils::PointXYZIT pt;
+    pt.x = cloud->points[i].x;
+    pt.y = cloud->points[i].y;
+    pt.z = cloud->points[i].z;
+    pt.intensity = cloud->points[i].intensity;
+    if (timestamps->size() > i) {
+      pt.time = (*timestamps)[i];
+    } else {
+      pt.time = 0.0;
+    }
+    temp_cloud->push_back(pt);
+  }
+
+  pcl::VoxelGrid<lidar_utils::PointXYZIT> ds;
+  ds.setLeafSize(voxelSize, voxelSize, voxelSize);
+  ds.setInputCloud(temp_cloud);
+  ds.filter(*temp_cloud);
+
+  // Unpack back into XYZI and timestamps array
+  cloud->clear();
+  timestamps->clear();
+  cloud->reserve(temp_cloud->size());
+  timestamps->reserve(temp_cloud->size());
+
+  for (const auto &pt : temp_cloud->points) {
+    pcl::PointXYZI p_xyzi;
+    p_xyzi.x = pt.x;
+    p_xyzi.y = pt.y;
+    p_xyzi.z = pt.z;
+    p_xyzi.intensity = pt.intensity;
+    cloud->push_back(p_xyzi);
+    timestamps->push_back(pt.time);
   }
 }
 

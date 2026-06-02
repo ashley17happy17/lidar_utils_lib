@@ -36,7 +36,7 @@ void CloudUtils::cropCloud(CloudType::Ptr &cloud,
 }
 
 void CloudUtils::cropCloud(CloudType::Ptr &cloud,
-                           std::vector<double>& timestamps,
+                           std::vector<double> &timestamps,
                            const Eigen::Vector3f &minBound,
                            const Eigen::Vector3f &maxBound) {
   internal::executeCrop(cloud, minBound, maxBound, &timestamps);
@@ -47,27 +47,31 @@ void CloudUtils::denoiseCloud(CloudType::Ptr &cloud, float radius,
   internal::executeDenoise(cloud, radius, epsilon);
 }
 
+void CloudUtils::removeArtifactCloud(CloudType::Ptr &cloud) {
+  internal::executeRemoveArtifact(cloud, nullptr);
+}
+
+void CloudUtils::removeArtifactCloud(CloudType::Ptr &cloud,
+                                     std::vector<double> &timestamps) {
+  internal::executeRemoveArtifact(cloud, &timestamps);
+}
+
 void CloudUtils::downsampleCloud(CloudType::Ptr &cloud, float voxelSize) {
   internal::executeDownsample(cloud, voxelSize, nullptr);
 }
 
-void CloudUtils::downsampleCloud(CloudType::Ptr &cloud, std::vector<double>& timestamps, float voxelSize) {
+void CloudUtils::downsampleCloud(CloudType::Ptr &cloud,
+                                 std::vector<double> &timestamps,
+                                 float voxelSize) {
   internal::executeDownsample(cloud, voxelSize, &timestamps);
-}
-
-void CloudUtils::removeArtifact(CloudType::Ptr &cloud) {
-  internal::executeRemoveArtifact(cloud, nullptr);
-}
-
-void CloudUtils::removeArtifact(CloudType::Ptr &cloud, std::vector<double>& timestamps) {
-  internal::executeRemoveArtifact(cloud, &timestamps);
 }
 
 void CloudUtils::removeNaNCloud(CloudType::Ptr &cloud) {
   internal::executeRemoveNaN(cloud, nullptr);
 }
 
-void CloudUtils::removeNaNCloud(CloudType::Ptr &cloud, std::vector<double>& timestamps) {
+void CloudUtils::removeNaNCloud(CloudType::Ptr &cloud,
+                                std::vector<double> &timestamps) {
   internal::executeRemoveNaN(cloud, &timestamps);
 }
 

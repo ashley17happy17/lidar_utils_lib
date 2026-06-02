@@ -29,7 +29,7 @@ public:
   static void cropCloud(CloudType::Ptr &cloud, const Eigen::Vector3f &minBound,
                         const Eigen::Vector3f &maxBound);
 
-  static void cropCloud(CloudType::Ptr &cloud, std::vector<double>& timestamps,
+  static void cropCloud(CloudType::Ptr &cloud, std::vector<double> &timestamps,
                         const Eigen::Vector3f &minBound,
                         const Eigen::Vector3f &maxBound);
 
@@ -39,22 +39,25 @@ public:
   static void denoiseCloud(CloudType::Ptr &cloud, float radius, float epsilon);
 
   /**
+   * @brief 7. removeArtifact: Removes ghost artifacts (In-place)
+   */
+  static void removeArtifactCloud(CloudType::Ptr &cloud);
+
+  static void removeArtifactCloud(CloudType::Ptr &cloud,
+                                  std::vector<double> &timestamps);
+
+  /**
    * @brief 5. downsampleCloud: Voxel grid downsampling (In-place)
    */
   static void downsampleCloud(CloudType::Ptr &cloud, float voxelSize);
 
-  static void downsampleCloud(CloudType::Ptr &cloud, std::vector<double>& timestamps, float voxelSize);
-
-  /**
-   * @brief 7. removeArtifact: Removes ghost artifacts (In-place)
-   */
-  static void removeArtifact(CloudType::Ptr &cloud);
-
-  static void removeArtifact(CloudType::Ptr &cloud, std::vector<double>& timestamps);
+  static void downsampleCloud(CloudType::Ptr &cloud,
+                              std::vector<double> &timestamps, float voxelSize);
 
   static void removeNaNCloud(CloudType::Ptr &cloud);
 
-  static void removeNaNCloud(CloudType::Ptr &cloud, std::vector<double>& timestamps);
+  static void removeNaNCloud(CloudType::Ptr &cloud,
+                             std::vector<double> &timestamps);
 
   static void readFile(CloudType::Ptr &cloud, std::string &filepath,
                        FileFormat format);
