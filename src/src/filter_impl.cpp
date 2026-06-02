@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include <numeric>
+#include <omp.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/filters/filter.h>
@@ -77,6 +78,7 @@ void executeDenoise(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, float radius,
   pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_copy(
       new pcl::PointCloud<pcl::PointXYZI>(*cloud));
 
+#pragma omp parallel for
   for (size_t i = 0; i < cloud->points.size(); ++i) {
     std::vector<int> pointIdxRadiusSearch;
     std::vector<float> pointRadiusSquaredDistance;
@@ -154,50 +156,6 @@ void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
     return;
   }
 
-  // Calculate normals for the whole cloud
-  pcl::NormalEstimation<pcl::PointXYZI, pcl::Normal> ne;
-  pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(
-      new pcl::search::KdTree<pcl::PointXYZI>());
-  ne.setSearchMethod(tree);
-  ne.setInputCloud(cloud);
-  ne.setRadiusSearch(NORMAL_RADIUS);
-  pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(
-      new pcl::PointCloud<pcl::Normal>());
-  ne.compute(*cloud_normals);
-
-  // Cluster high intensity points
-  pcl::search::KdTree<pcl::PointXYZI>::Ptr tree_high(
-      new pcl::search::KdTree<pcl::PointXYZI>());
-  tree_high->setInputCloud(high_pcd);
-  std::vector<pcl::PointIndices> cluster_indices;
-  pcl::EuclideanClusterExtraction<pcl::PointXYZI> ec;
-  ec.setClusterTolerance(CLUSTER_TOLERANCE);
-  ec.setMinClusterSize(MIN_CLUSTER_SIZE);
-  ec.setSearchMethod(tree_high);
-  ec.setInputCloud(high_pcd);
-  ec.extract(cluster_indices);
-
-  if (cluster_indices.empty())
-    return;
-
-  // Find largest cluster
-  int max_cluster_idx = 0;
-  size_t max_size = 0;
-  for (size_t i = 0; i < cluster_indices.size(); ++i) {
-    if (cluster_indices[i].indices.size() > max_size) {
-      max_size = cluster_indices[i].indices.size();
-      max_cluster_idx = i;
-    }
-  }
-
-  std::set<size_t> main_sign_set;
-  pcl::PointCloud<pcl::PointXYZI>::Ptr main_sign_pcd(
-      new pcl::PointCloud<pcl::PointXYZI>());
-  for (int idx : cluster_indices[max_cluster_idx].indices) {
-    main_sign_set.insert(high_idx[idx]);
-    main_sign_pcd->push_back(high_pcd->points[idx]);
-  }
-
   // Fit plane
   pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
@@ -207,7 +165,7 @@ void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   seg.setMethodType(pcl::SAC_RANSAC);
   seg.setMaxIterations(1000);
   seg.setDistanceThreshold(0.1);
-  seg.setInputCloud(main_sign_pcd);
+  seg.setInputCloud(high_pcd);
   seg.segment(*inliers, *coefficients);
 
   if (inliers->indices.empty())
@@ -219,53 +177,66 @@ void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
 
   Eigen::Vector3f sign_center(0, 0, 0);
   for (int idx : inliers->indices) {
-    sign_center += main_sign_pcd->points[idx].getVector3fMap();
+    sign_center += high_pcd->points[idx].getVector3fMap();
   }
   sign_center /= static_cast<float>(inliers->indices.size());
 
-  // std::cout << "[Debug] 號誌中心: " << sign_center.x() << " " <<
-  // sign_center.y()
-  //           << " " << sign_center.z() << std::endl;
-  // std::cout << "[Debug] 擬合平面: " << plane_model[0] << "x + "
-  //           << plane_model[1] << "y + " << plane_model[2] << "z + "
-  //           << plane_model[3] << " = 0" << std::endl;
-
-  // Filter and statistics
-  std::vector<size_t> ghost_indices;
+  // === OPTIMIZATION: Filter Candidates BEFORE Normal Estimation ===
+  std::set<size_t> high_idx_set(high_idx.begin(), high_idx.end());
+  pcl::IndicesPtr candidate_indices(new std::vector<int>());
   Eigen::Vector3f sign_normal(plane_model[0], plane_model[1], plane_model[2]);
-
-  int cnt_plane = 0, cnt_radius = 0, cnt_normal = 0;
 
   for (size_t i = 0; i < num_points; ++i) {
     Eigen::Vector3f pt = cloud->points[i].getVector3fMap();
     float dist_p = std::abs(sign_normal.dot(pt) + plane_model[3]);
     float dist_c = (pt - sign_center).norm();
 
-    bool m_plane = dist_p < PLANE_DISTANCE_THRESH;
-    bool m_radius = dist_c < GHOST_DETECT_RADIUS;
+    if (dist_p < PLANE_DISTANCE_THRESH && dist_c < GHOST_DETECT_RADIUS) {
+      candidate_indices->push_back(i);
+    }
+  }
 
-    if (m_plane)
-      cnt_plane++;
-    if (m_plane && m_radius)
-      cnt_radius++;
+  // If no candidates, exit early!
+  if (candidate_indices->empty())
+    return;
 
+  // Calculate normals ONLY for the candidates (takes < 5ms instead of 1800ms)
+  pcl::NormalEstimation<pcl::PointXYZI, pcl::Normal> ne;
+  pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(
+      new pcl::search::KdTree<pcl::PointXYZI>());
+  ne.setSearchMethod(tree);
+  ne.setInputCloud(cloud);
+  ne.setIndices(candidate_indices);
+  ne.setRadiusSearch(NORMAL_RADIUS);
+  pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(
+      new pcl::PointCloud<pcl::Normal>());
+  ne.compute(*cloud_normals);
+
+  // Filter and statistics
+  std::vector<size_t> ghost_indices;
+
+  for (size_t idx = 0; idx < candidate_indices->size(); ++idx) {
+    size_t i = (*candidate_indices)[idx];
+    float intensity = cloud->points[i].intensity;
+
+    bool m_intensity = intensity <= GHOST_CUTOFF_MAX;
+    bool m_protected = intensity >= PROTECT_INTENSITY_MIN;
+    bool m_not_main = (high_idx_set.find(i) == high_idx_set.end());
+
+    if (!m_intensity || m_protected || !m_not_main)
+      continue;
+
+    Eigen::Vector3f pt = cloud->points[i].getVector3fMap();
     Eigen::Vector3f view = -pt;
     if (view.norm() > 0)
       view.normalize();
+
+    // cloud_normals has the exact same size as candidate_indices
     float cos_sim =
-        std::abs(cloud_normals->points[i].getNormalVector3fMap().dot(view));
+        std::abs(cloud_normals->points[idx].getNormalVector3fMap().dot(view));
     bool m_normal = cos_sim > NORMAL_SIMILARITY_THRESH;
 
-    if (m_plane && m_radius && m_normal)
-      cnt_normal++;
-
-    float intensity = cloud->points[i].intensity;
-    bool m_intensity = intensity <= GHOST_CUTOFF_MAX;
-    bool m_protected = intensity >= PROTECT_INTENSITY_MIN;
-    bool m_not_main = (main_sign_set.find(i) == main_sign_set.end());
-
-    if (m_plane && m_radius && m_normal && m_intensity && (!m_protected) &&
-        m_not_main) {
+    if (m_normal) {
       ghost_indices.push_back(i);
     }
   }

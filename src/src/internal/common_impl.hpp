@@ -6,9 +6,9 @@
 namespace lidar_utils {
 namespace internal {
 
-void executeMergeCloud(pcl::PointCloud<pcl::PointXYZI>::Ptr &base_cloud,
-                       pcl::PointCloud<pcl::PointXYZI>::ConstPtr other_cloud,
-                       float voxelSize);
+void executeMerge(pcl::PointCloud<pcl::PointXYZI>::Ptr &base_cloud,
+                  pcl::PointCloud<pcl::PointXYZI>::ConstPtr other_cloud,
+                  float voxelSize);
 
 } // namespace internal
 } // namespace lidar_utils

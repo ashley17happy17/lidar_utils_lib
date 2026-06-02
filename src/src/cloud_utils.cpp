@@ -14,7 +14,7 @@ namespace lidar_utils {
 void CloudUtils::mergeCloud(CloudType::Ptr &base_cloud,
                             const CloudType::ConstPtr &other_cloud,
                             float voxelSize) {
-  internal::executeMergeCloud(base_cloud, other_cloud, voxelSize);
+  internal::executeMerge(base_cloud, other_cloud, voxelSize);
 }
 
 /***************************
