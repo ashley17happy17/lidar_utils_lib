@@ -6,6 +6,7 @@
 #include <numeric>
 #include <omp.h>
 #include <pcl/features/normal_3d.h>
+#include <pcl/features/normal_3d_omp.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/filters/filter.h>
 #include <pcl/filters/voxel_grid.h>
@@ -201,12 +202,15 @@ void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
     return;
 
   // Calculate normals ONLY for the candidates (takes < 5ms instead of 1800ms)
-  pcl::NormalEstimation<pcl::PointXYZI, pcl::Normal> ne;
+  pcl::NormalEstimationOMP<pcl::PointXYZI, pcl::Normal> ne;
+  ne.setNumberOfThreads(omp_get_max_threads());
   pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(
       new pcl::search::KdTree<pcl::PointXYZI>());
   ne.setSearchMethod(tree);
   ne.setInputCloud(cloud);
   ne.setIndices(candidate_indices);
+  // Optional: A 1.0m radius is huge and could be very slow in dense clouds.
+  // You might want to try ne.setKSearch(20); instead if it's still slow!
   ne.setRadiusSearch(NORMAL_RADIUS);
   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(
       new pcl::PointCloud<pcl::Normal>());
