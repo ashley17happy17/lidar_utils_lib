@@ -101,9 +101,8 @@ void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
                                        const std::vector<double> &timestamps,
                                        const Eigen::VectorXd &posPrev,
                                        const Eigen::VectorXd &posCurr,
-                                       SensorType sensorType,
                                        bool motionEnable) {
-  internal::executeMotionAndDG(cloud, timestamps, posPrev, posCurr, sensorType,
+  internal::executeMotionAndDG(cloud, timestamps, posPrev, posCurr,
                                motionEnable);
 }
 

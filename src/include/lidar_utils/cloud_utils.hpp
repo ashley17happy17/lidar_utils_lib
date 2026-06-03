@@ -77,7 +77,7 @@ public:
                                     const std::vector<double> &timestamps,
                                     const Eigen::VectorXd &posPrev,
                                     const Eigen::VectorXd &posCurr,
-                                    SensorType sensorType, bool motionEnable);
+                                    bool motionEnable);
 
   static void scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map,
                                 Eigen::Matrix4f &in_transform,

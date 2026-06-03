@@ -28,38 +28,41 @@ void executeCrop(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   if (!cloud || cloud->empty())
     return;
 
-  pcl::CropBox<pcl::PointXYZI> crop_box;
-
-  Eigen::Vector4f min_pt(minBound.x(), minBound.y(), minBound.z(), 1.0f);
-  Eigen::Vector4f max_pt(maxBound.x(), maxBound.y(), maxBound.z(), 1.0f);
-  crop_box.setMin(min_pt);
-  crop_box.setMax(max_pt);
-
-  crop_box.setInputCloud(cloud);
-  crop_box.setNegative(true);
-
-  std::vector<int> indices;
-  crop_box.filter(indices);
-
-  // Synchronize both cloud and timestamps
   pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud(
       new pcl::PointCloud<pcl::PointXYZI>());
-  std::vector<double> filtered_timestamps;
-  filtered_cloud->reserve(indices.size());
+  filtered_cloud->reserve(cloud->size());
 
-  if (timestamps) {
-    filtered_timestamps.reserve(indices.size());
+  std::vector<double> filtered_timestamps;
+  bool has_time =
+      (timestamps != nullptr && timestamps->size() == cloud->size());
+  if (has_time) {
+    filtered_timestamps.reserve(timestamps->size());
   }
 
-  for (int idx : indices) {
-    filtered_cloud->push_back(cloud->points[idx]);
-    if (timestamps && timestamps->size() > static_cast<size_t>(idx)) {
-      filtered_timestamps.push_back((*timestamps)[idx]);
+  for (size_t i = 0; i < cloud->size(); ++i) {
+    const auto &pt = cloud->points[i];
+
+    // Check outer bound (must be inside [-maxBound, maxBound])
+    bool inside_outer = (pt.x >= -maxBound.x() && pt.x <= maxBound.x() &&
+                         pt.y >= -maxBound.y() && pt.y <= maxBound.y() &&
+                         pt.z >= -maxBound.z() && pt.z <= maxBound.z());
+
+    // Check inner bound (must be inside [-minBound, minBound])
+    bool inside_inner = (pt.x >= -minBound.x() && pt.x <= minBound.x() &&
+                         pt.y >= -minBound.y() && pt.y <= minBound.y() &&
+                         pt.z >= -minBound.z() && pt.z <= minBound.z());
+
+    // Keep point if it is inside the outer box but NOT inside the inner box
+    if (inside_outer && !inside_inner) {
+      filtered_cloud->push_back(pt);
+      if (has_time) {
+        filtered_timestamps.push_back((*timestamps)[i]);
+      }
     }
   }
 
   *cloud = *filtered_cloud;
-  if (timestamps) {
+  if (has_time) {
     *timestamps = std::move(filtered_timestamps);
   }
 
@@ -209,9 +212,7 @@ void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   ne.setSearchMethod(tree);
   ne.setInputCloud(cloud);
   ne.setIndices(candidate_indices);
-  // Optional: A 1.0m radius is huge and could be very slow in dense clouds.
-  // You might want to try ne.setKSearch(20); instead if it's still slow!
-  ne.setRadiusSearch(NORMAL_RADIUS);
+  ne.setKSearch(20); // ne.setRadiusSearch(NORMAL_RADIUS);
   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(
       new pcl::PointCloud<pcl::Normal>());
   ne.compute(*cloud_normals);

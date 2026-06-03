@@ -8,8 +8,7 @@ namespace internal {
 void executeMotionAndDG(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
                         const std::vector<double> &timestamps,
                         const Eigen::VectorXd &posPrev,
-                        const Eigen::VectorXd &posCurr, SensorType sensorType,
-                        bool motionEnable) {
+                        const Eigen::VectorXd &posCurr, bool motionEnable) {
   if (!cloud || cloud->empty())
     return;
 
@@ -60,7 +59,8 @@ void executeMotionAndDG(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
     }
 
     // Clamp s between 0.0 and 1.0 just in case there are slight timestamp
-    // mismatches
+    // mismatches (allow extrapolation for points that fall outside the
+    // [timePrev, timeCurr] range)
     s = std::max(0.0, std::min(1.0, s));
 
     // 2. Interpolate the pose for this exact microsecond

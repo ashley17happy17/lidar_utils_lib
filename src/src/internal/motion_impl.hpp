@@ -9,10 +9,9 @@ namespace lidar_utils {
 namespace internal {
 
 void executeMotionAndDG(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                        const std::vector<double>& timestamps,
+                        const std::vector<double> &timestamps,
                         const Eigen::VectorXd &posPrev,
-                        const Eigen::VectorXd &posCurr, SensorType sensorType,
-                        bool motionEnable);
+                        const Eigen::VectorXd &posCurr, bool motionEnable);
 
 } // namespace internal
 } // namespace lidar_utils
