@@ -78,6 +78,11 @@ void CloudUtils::removeNaNCloud(CloudType::Ptr &cloud,
 /***************************
  *  io_impl                *
  ***************************/
+void CloudUtils::readContent(const std::string &path,
+                             std::vector<LidarContent> &file_list) {
+  internal::executeReadContent(path, file_list);
+}
+
 void CloudUtils::readFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
                           std::string &filepath, FileFormat format) {
   internal::executeReadFile(cloud, filepath, format, nullptr);

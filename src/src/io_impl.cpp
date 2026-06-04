@@ -1,13 +1,47 @@
 #include "internal/io_impl.hpp"
+#include <filesystem>
 #include <iostream>
 #include <pcl/io/pcd_io.h>
 
+namespace fs = std::filesystem;
 namespace lidar_utils {
 namespace internal {
 
+void executeReadContent(const std::string &filepath,
+                        std::vector<LidarContent> &file_list) {
+  if (fs::exists(filepath) && fs::is_directory(filepath)) {
+    for (const auto &entry : fs::directory_iterator(filepath)) {
+      if (entry.is_regular_file()) {
+        std::string ext = entry.path().extension().string();
+        // Support standard point cloud file extensions
+        if (ext == ".pcd" || ext == ".las") {
+          std::string stem = entry.path().stem().string();
+          try {
+            double ts = std::stod(stem) * 1e-3; // Convert from ms to sec
+            file_list.push_back({ts, entry.path().string()});
+          } catch (...) {
+            std::cerr << "[WARN] Failed to parse timestamp from filename: "
+                      << entry.path().string() << std::endl;
+          }
+        }
+      }
+    }
+  } else {
+    std::cerr << "[ERROR] Lidar path does not exist or is not a directory: "
+              << filepath << std::endl;
+  }
+
+  // Sort files sequentially by timestamp to allow fast lookup for
+  // synchronization
+  std::sort(file_list.begin(), file_list.end(),
+            [](const LidarContent &a, const LidarContent &b) {
+              return a.timestamp < b.timestamp;
+            });
+}
+
 void executeReadFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
                      std::string &filepath, FileFormat format,
-                     std::vector<double>* timestamps) {
+                     std::vector<double> *timestamps) {
   // If the user doesn't care about timestamps, load directly into XYZI!
   if (!timestamps) {
     switch (format) {
@@ -17,7 +51,7 @@ void executeReadFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
       break;
     default:
       pcl::io::loadPCDFile(filepath, *cloud);
-      std::cerr << "Warning [executeReadFile]: Unknown file encode format\n";
+      std::cerr << "[WARN]: Unknown file encode format\n";
       break;
     }
     return;
@@ -29,13 +63,13 @@ void executeReadFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   case FileFormat::PCD_BINARY:
   case FileFormat::PCD_ASCII:
     if (pcl::io::loadPCDFile(filepath, cloud_with_time) == -1) {
-      std::cerr << "Failed to load PCD file.\n";
+      std::cerr << "[ERROR] Failed to load PCD file.\n";
       return;
     }
     break;
   default:
     if (pcl::io::loadPCDFile(filepath, cloud_with_time) == -1) {
-      std::cerr << "Warning [executeReadFile]: Unknown file format.\n";
+      std::cerr << "[ERROR]: Unknown file format.\n";
       return;
     }
     break;
@@ -47,7 +81,7 @@ void executeReadFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   cloud->reserve(cloud_with_time.size());
   timestamps->reserve(cloud_with_time.size());
 
-  for (const auto& pt : cloud_with_time.points) {
+  for (const auto &pt : cloud_with_time.points) {
     pcl::PointXYZI p_xyzi;
     p_xyzi.x = pt.x;
     p_xyzi.y = pt.y;
@@ -72,7 +106,7 @@ void executeSaveFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
     //     break;
   default:
     pcl::io::savePCDFileBinary(filepath, *cloud);
-    std::cerr << "Warning [executeSavePCD]: Unknown file encode format, using "
+    std::cerr << "[WARN]]: Unknown file encode format, using "
                  "PCD_BINARY\n";
     break;
   }

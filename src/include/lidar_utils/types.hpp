@@ -3,6 +3,7 @@
 #define PCL_NO_PRECOMPILE // Required for custom point types
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <string>
 
 namespace lidar_utils {
 
@@ -15,6 +16,11 @@ enum class SensorType {
 };
 
 enum class FileFormat { PCD_BINARY, PCD_ASCII, LAS };
+
+struct LidarContent {
+  double timestamp;
+  std::string filename;
+};
 
 struct PointXYZIT {
   PCL_ADD_POINT4D;   // x, y, z, intensity, ring

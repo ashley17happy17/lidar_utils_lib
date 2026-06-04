@@ -59,6 +59,9 @@ public:
   static void removeNaNCloud(CloudType::Ptr &cloud,
                              std::vector<double> &timestamps);
 
+  static void readContent(const std::string &path,
+                          std::vector<LidarContent> &file_list);
+
   static void readFile(CloudType::Ptr &cloud, std::string &filepath,
                        FileFormat format);
 
