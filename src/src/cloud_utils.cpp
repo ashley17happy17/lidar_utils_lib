@@ -26,6 +26,12 @@ void CloudUtils::eopCalib(const Eigen::MatrixXd &la, const Eigen::MatrixXd &bs,
   internal::executeEOPCalib(la, bs, laCalib, bsCalib);
 }
 
+Eigen::Matrix4d CloudUtils::getExtrinsics(const std::string &type,
+                                          const Eigen::Vector3d &trans,
+                                          const Eigen::Vector3d &rot) {
+  return internal::executeGetExtrinsics(type, trans, rot);
+}
+
 /***************************
  *  filter_impl            *
  ***************************/

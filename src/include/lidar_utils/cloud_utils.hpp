@@ -23,6 +23,10 @@ public:
                        const Eigen::Vector3d &laCalib,
                        const Eigen::Vector3d &bsCalib);
 
+  static Eigen::Matrix4d getExtrinsics(const std::string &type,
+                                       const Eigen::Vector3d &trans,
+                                       const Eigen::Vector3d &rot);
+
   /**
    * @brief 3. cropCloud: Cuboid geometric cropping (In-place)
    */
