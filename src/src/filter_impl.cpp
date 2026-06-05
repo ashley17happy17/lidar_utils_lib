@@ -154,11 +154,10 @@ void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
     }
   }
 
-  // if (high_idx.size() < MIN_SIGN_POINTS) {
-  //   std::cout << "[Debug] 跳過：高強度點數不足 (" << high_idx.size() << ")"
-  //             << std::endl;
-  //   return;
-  // }
+  if (high_idx.size() < MIN_SIGN_POINTS) {
+    // std::cout << "[Debug] Skip: Not enough high-intensity points (" << high_idx.size() << ")" << std::endl;
+    return;
+  }
 
   // Fit plane
   pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
