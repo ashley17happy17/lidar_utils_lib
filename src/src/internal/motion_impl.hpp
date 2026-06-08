@@ -8,7 +8,7 @@
 namespace lidar_utils {
 namespace internal {
 
-void executeDirectGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4f &trans);
+void executeDirectGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4d &trans);
 
 void executeMotionAndDG(CloudType::Ptr &cloud,
                         const std::vector<double> &timestamps,

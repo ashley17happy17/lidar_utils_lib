@@ -110,7 +110,7 @@ void CloudUtils::saveFile(CloudType::Ptr &cloud, std::string &filepath,
  ***************************/
 
 void CloudUtils::directGeoreference(CloudType::Ptr &cloud,
-                                    Eigen::Matrix4f &trans) {
+                                    Eigen::Matrix4d &trans) {
   internal::executeDirectGeoreference(cloud, trans);
 }
 
@@ -127,8 +127,8 @@ void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
  *  registration_impl      *
  ***************************/
 void CloudUtils::scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map,
-                                   Eigen::Matrix4f &in_transform,
-                                   Eigen::Matrix4f &out_transform,
+                                   Eigen::Matrix4d &in_transform,
+                                   Eigen::Matrix4d &out_transform,
                                    float max_correspondence_distance,
                                    float voxel_size, float score_threshold) {
   internal::executeScanToMapMatching(cloud, map, in_transform, out_transform,
@@ -138,8 +138,8 @@ void CloudUtils::scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map,
 
 void CloudUtils::scanToScanMatching(CloudType::Ptr &cloud,
                                     CloudType::Ptr &localmap,
-                                    Eigen::Matrix4f &in_transform,
-                                    Eigen::Matrix4f &out_transform,
+                                    Eigen::Matrix4d &in_transform,
+                                    Eigen::Matrix4d &out_transform,
                                     float max_correspondence_distance,
                                     float voxel_size, float score_threshold) {
   internal::executeScanToScanMatching(

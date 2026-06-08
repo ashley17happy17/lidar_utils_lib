@@ -5,7 +5,7 @@
 namespace lidar_utils {
 namespace internal {
 
-void executeDirectGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4f &trans) {
+void executeDirectGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4d &trans) {
   if (!cloud || cloud->empty())
     return;
   pcl::transformPointCloud(*cloud, *cloud, trans);

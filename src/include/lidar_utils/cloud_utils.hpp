@@ -9,7 +9,6 @@ namespace lidar_utils {
 
 class CloudUtils {
 public:
-
   /**
    * @brief 6. mergeCloud: Combines other_cloud into base_cloud (In-place)
    */
@@ -79,7 +78,7 @@ public:
    * @note Changed to modify 'cloud' directly to match the toolbox style.
    */
 
-  static void directGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4f &trans);
+  static void directGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4d &trans);
 
   static void motionCompensateAndDG(CloudType::Ptr &cloud,
                                     const std::vector<double> &timestamps,
@@ -88,15 +87,15 @@ public:
                                     bool motionEnable);
 
   static void scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map,
-                                Eigen::Matrix4f &in_transform,
-                                Eigen::Matrix4f &out_transform,
+                                Eigen::Matrix4d &in_transform,
+                                Eigen::Matrix4d &out_transform,
                                 float max_correspondence_distance,
                                 float voxel_size, float score_threshold);
 
   static void scanToScanMatching(CloudType::Ptr &cloud,
                                  CloudType::Ptr &localmap,
-                                 Eigen::Matrix4f &in_transform,
-                                 Eigen::Matrix4f &out_transform,
+                                 Eigen::Matrix4d &in_transform,
+                                 Eigen::Matrix4d &out_transform,
                                  float max_correspondence_distance,
                                  float voxel_size, float score_threshold);
 };
