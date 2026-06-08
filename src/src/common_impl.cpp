@@ -5,7 +5,7 @@
 namespace lidar_utils {
 namespace internal {
 
-void executeMerge(pcl::PointCloud<pcl::PointXYZI>::Ptr &base_cloud,
+void executeMerge(CloudType::Ptr &base_cloud,
                   pcl::PointCloud<pcl::PointXYZI>::ConstPtr other_cloud,
                   float voxelSize) {
   if (!base_cloud) {

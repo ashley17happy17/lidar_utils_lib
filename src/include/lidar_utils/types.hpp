@@ -15,6 +15,10 @@ enum class SensorType {
   VELODYNE_VLS128
 };
 
+using PointType = pcl::PointXYZI;
+using CloudType = pcl::PointCloud<PointType>;
+using ConstCloudType = pcl::PointCloud<pcl::PointXYZI>::ConstPtr;
+
 enum class FileFormat { PCD_BINARY, PCD_ASCII, LAS };
 
 struct LidarContent {

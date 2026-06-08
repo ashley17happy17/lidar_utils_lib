@@ -39,9 +39,8 @@ void executeReadContent(const std::string &filepath,
             });
 }
 
-void executeReadFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                     std::string &filepath, FileFormat format,
-                     std::vector<double> *timestamps) {
+void executeReadFile(CloudType::Ptr &cloud, std::string &filepath,
+                     FileFormat format, std::vector<double> *timestamps) {
   // If the user doesn't care about timestamps, load directly into XYZI!
   if (!timestamps) {
     switch (format) {
@@ -92,8 +91,8 @@ void executeReadFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   }
 }
 
-void executeSaveFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                     std::string &filepath, FileFormat format) {
+void executeSaveFile(CloudType::Ptr &cloud, std::string &filepath,
+                     FileFormat format) {
   switch (format) {
   case FileFormat::PCD_BINARY:
     pcl::io::savePCDFileBinary(filepath, *cloud);

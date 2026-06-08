@@ -21,8 +21,7 @@
 namespace lidar_utils {
 namespace internal {
 
-void executeCrop(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                 const Eigen::Vector3f &minBound,
+void executeCrop(CloudType::Ptr &cloud, const Eigen::Vector3f &minBound,
                  const Eigen::Vector3f &maxBound,
                  std::vector<double> *timestamps) {
   if (!cloud || cloud->empty())
@@ -71,8 +70,7 @@ void executeCrop(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   cloud->is_dense = true;
 }
 
-void executeDenoise(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, float radius,
-                    float epsilon) {
+void executeDenoise(CloudType::Ptr &cloud, float radius, float epsilon) {
   if (!cloud || cloud->empty())
     return;
 
@@ -126,7 +124,7 @@ void executeDenoise(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, float radius,
   *cloud = *cloud_copy;
 }
 
-void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
+void executeRemoveArtifact(CloudType::Ptr &cloud,
                            std::vector<double> *timestamps) {
   if (!cloud || cloud->empty())
     return;
@@ -155,7 +153,8 @@ void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   }
 
   if (high_idx.size() < MIN_SIGN_POINTS) {
-    // std::cout << "[Debug] Skip: Not enough high-intensity points (" << high_idx.size() << ")" << std::endl;
+    // std::cout << "[Debug] Skip: Not enough high-intensity points (" <<
+    // high_idx.size() << ")" << std::endl;
     return;
   }
 
@@ -275,8 +274,8 @@ void executeRemoveArtifact(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   }
 }
 
-void executeDownsample(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                       float voxelSize, std::vector<double> *timestamps) {
+void executeDownsample(CloudType::Ptr &cloud, float voxelSize,
+                       std::vector<double> *timestamps) {
   if (!cloud || cloud->empty())
     return;
 
@@ -328,8 +327,7 @@ void executeDownsample(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
   }
 }
 
-void executeRemoveNaN(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                      std::vector<double> *timestamps) {
+void executeRemoveNaN(CloudType::Ptr &cloud, std::vector<double> *timestamps) {
   if (!cloud || cloud->empty())
     return;
 

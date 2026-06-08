@@ -9,12 +9,12 @@ namespace internal {
 void executeReadContent(const std::string &filepath,
                         std::vector<LidarContent> &file_list);
 
-void executeReadFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                     std::string &filepath, FileFormat format,
+void executeReadFile(CloudType::Ptr &cloud, std::string &filepath,
+                     FileFormat format,
                      std::vector<double> *timestamps = nullptr);
 
-void executeSaveFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                     std::string &filepath, FileFormat format);
+void executeSaveFile(CloudType::Ptr &cloud, std::string &filepath,
+                     FileFormat format);
 
 } // namespace internal
 } // namespace lidar_utils

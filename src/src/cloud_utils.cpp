@@ -89,31 +89,37 @@ void CloudUtils::readContent(const std::string &path,
   internal::executeReadContent(path, file_list);
 }
 
-void CloudUtils::readFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                          std::string &filepath, FileFormat format) {
+void CloudUtils::readFile(CloudType::Ptr &cloud, std::string &filepath,
+                          FileFormat format) {
   internal::executeReadFile(cloud, filepath, format, nullptr);
 }
 
-void CloudUtils::readFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
+void CloudUtils::readFile(CloudType::Ptr &cloud,
                           std::vector<double> &timestamps,
                           std::string &filepath, FileFormat format) {
   internal::executeReadFile(cloud, filepath, format, &timestamps);
 }
 
-void CloudUtils::saveFile(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                          std::string &filepath, FileFormat format) {
+void CloudUtils::saveFile(CloudType::Ptr &cloud, std::string &filepath,
+                          FileFormat format) {
   internal::executeSaveFile(cloud, filepath, format);
 }
 
 /***************************
  *  motion_impl            *
  ***************************/
+
+void CloudUtils::directGeoreference(CloudType::Ptr &cloud,
+                                    Eigen::Matrix4f &trans) {
+  internal::executeDirectGeoreference(cloud, trans);
+}
+
 void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
                                        const std::vector<double> &timestamps,
-                                       const Eigen::VectorXd &posPrev,
                                        const Eigen::VectorXd &posCurr,
+                                       const Eigen::VectorXd &posNext,
                                        bool motionEnable) {
-  internal::executeMotionAndDG(cloud, timestamps, posPrev, posCurr,
+  internal::executeMotionAndDG(cloud, timestamps, posCurr, posNext,
                                motionEnable);
 }
 

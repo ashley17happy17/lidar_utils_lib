@@ -8,10 +8,12 @@
 namespace lidar_utils {
 namespace internal {
 
-void executeMotionAndDG(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
+void executeDirectGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4f &trans);
+
+void executeMotionAndDG(CloudType::Ptr &cloud,
                         const std::vector<double> &timestamps,
-                        const Eigen::VectorXd &posPrev,
-                        const Eigen::VectorXd &posCurr, bool motionEnable);
+                        const Eigen::VectorXd &posCurr,
+                        const Eigen::VectorXd &posNext, bool motionEnable);
 
 } // namespace internal
 } // namespace lidar_utils

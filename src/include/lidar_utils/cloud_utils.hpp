@@ -9,8 +9,6 @@ namespace lidar_utils {
 
 class CloudUtils {
 public:
-  using PointType = pcl::PointXYZI;
-  using CloudType = pcl::PointCloud<PointType>;
 
   /**
    * @brief 6. mergeCloud: Combines other_cloud into base_cloud (In-place)
@@ -80,10 +78,13 @@ public:
    * world frame (In-place)
    * @note Changed to modify 'cloud' directly to match the toolbox style.
    */
+
+  static void directGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4f &trans);
+
   static void motionCompensateAndDG(CloudType::Ptr &cloud,
                                     const std::vector<double> &timestamps,
-                                    const Eigen::VectorXd &posPrev,
                                     const Eigen::VectorXd &posCurr,
+                                    const Eigen::VectorXd &posNext,
                                     bool motionEnable);
 
   static void scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map,

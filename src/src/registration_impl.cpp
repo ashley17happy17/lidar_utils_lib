@@ -10,15 +10,13 @@
 namespace lidar_utils {
 namespace internal {
 
-void executeScanToMapMatching(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                              pcl::PointCloud<pcl::PointXYZI>::Ptr &map,
+void executeScanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map,
                               Eigen::Matrix4f &in_transform,
                               Eigen::Matrix4f &out_transform,
                               float max_correspondence_distance,
                               float voxel_size, float score_threshold) {}
 
-void executeScanToScanMatching(pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                               pcl::PointCloud<pcl::PointXYZI>::Ptr &localmap,
+void executeScanToScanMatching(CloudType::Ptr &cloud, CloudType::Ptr &localmap,
                                Eigen::Matrix4f &in_transform,
                                Eigen::Matrix4f &out_transform,
                                float max_correspondence_distance,
