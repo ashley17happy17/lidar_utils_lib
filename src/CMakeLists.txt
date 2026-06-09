@@ -29,6 +29,6 @@ target_link_libraries(lidar_utils PUBLIC
     Eigen3::Eigen    OpenMP::OpenMP_CXX
 )
 
-# 建立測試程式
-add_executable(test_remove_artifact test/test_remove_artifact.cpp)
-target_link_libraries(test_remove_artifact PRIVATE lidar_utils)
+# # 建立測試程式
+# add_executable(test_remove_artifact test/test_remove_artifact.cpp)
+# target_link_libraries(test_remove_artifact PRIVATE lidar_utils)
