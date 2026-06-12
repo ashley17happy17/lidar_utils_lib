@@ -35,6 +35,22 @@ struct PointXYZIT {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 } EIGEN_ALIGN16;
 
+struct RegistrationConfig {
+  float score_threshold = 2.0f;
+  int max_iterations = 100;
+  float max_correspondence_distance = 5.0f;
+
+  float rotation_eps = 1e-3f;
+  float translation_eps = 1e-3f;
+  int num_threads = 0; // 0 means use maximum available threads
+
+  // NDT specific
+  float ndt_resolution = 1.0f;
+  float ndt_step_size = 0.1f;
+  float ndt_transformation_epsilon = 0.01f;
+  float ndt_oulier_ratio = 0.2f;
+};
+
 } // namespace lidar_utils
 
 // This macro MUST be outside any namespaces

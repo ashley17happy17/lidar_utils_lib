@@ -10,6 +10,16 @@ find_package(Eigen3 REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(PDAL REQUIRED)
 
+# Fetch small_gicp
+include(FetchContent)
+FetchContent_Declare(small_gicp
+  GIT_REPOSITORY https://github.com/koide3/small_gicp.git
+  GIT_TAG master
+)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_WITH_OPENMP ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(small_gicp)
+
 # 蒐集所有實作原始碼
 file(GLOB_RECURSE SRC_FILES "src/*.cpp")
 
@@ -17,7 +27,7 @@ file(GLOB_RECURSE SRC_FILES "src/*.cpp")
 add_library(lidar_utils STATIC ${SRC_FILES})
 
 # 設定頭文件路徑：將 include 設為 PUBLIC 分享給外部，src 設為 PRIVATE 鎖在內部
-target_include_directories(lidar_utils 
+target_include_directories(lidar_utils
     PUBLIC 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         ${PCL_INCLUDE_DIRS}
@@ -27,7 +37,7 @@ target_include_directories(lidar_utils
 
 target_link_libraries(lidar_utils PUBLIC 
     ${PCL_LIBRARIES} 
-    Eigen3::Eigen    OpenMP::OpenMP_CXX     ${PDAL_LIBRARIES} 
+    Eigen3::Eigen    OpenMP::OpenMP_CXX     ${PDAL_LIBRARIES}   small_gicp
 )
 
 # # 建立測試程式

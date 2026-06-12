@@ -3,7 +3,7 @@
 #include "internal/eop_impl.hpp"
 #include "internal/filter_impl.hpp"
 #include "internal/io_impl.hpp"
-#include "internal/motion_impl.hpp"
+#include "internal/transform_impl.hpp"
 #include "internal/registration_impl.hpp"
 
 namespace lidar_utils {
@@ -106,7 +106,7 @@ void CloudUtils::saveFile(CloudType::Ptr &cloud, std::string &filepath,
 }
 
 /***************************
- *  motion_impl            *
+ *  transform_impl         *
  ***************************/
 
 void CloudUtils::directGeoreference(CloudType::Ptr &cloud,
@@ -126,25 +126,18 @@ void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
 /***************************
  *  registration_impl      *
  ***************************/
-void CloudUtils::scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map,
-                                   Eigen::Matrix4d &in_transform,
-                                   Eigen::Matrix4d &out_transform,
-                                   float max_correspondence_distance,
-                                   float voxel_size, float score_threshold) {
-  internal::executeScanToMapMatching(cloud, map, in_transform, out_transform,
-                                     max_correspondence_distance, voxel_size,
-                                     score_threshold);
+int CloudUtils::GICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
+                     Eigen::Matrix4d &in_transform,
+                     Eigen::Matrix4d &out_transform,
+                     const RegistrationConfig &config) {
+  return internal::executeGICP(cloud, map, in_transform, out_transform, config);
 }
 
-void CloudUtils::scanToScanMatching(CloudType::Ptr &cloud,
-                                    CloudType::Ptr &localmap,
-                                    Eigen::Matrix4d &in_transform,
-                                    Eigen::Matrix4d &out_transform,
-                                    float max_correspondence_distance,
-                                    float voxel_size, float score_threshold) {
-  internal::executeScanToScanMatching(
-      cloud, localmap, in_transform, out_transform, max_correspondence_distance,
-      voxel_size, score_threshold);
+int CloudUtils::NDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
+                    Eigen::Matrix4d &in_transform,
+                    Eigen::Matrix4d &out_transform,
+                    const RegistrationConfig &config) {
+  return internal::executeNDT(cloud, map, in_transform, out_transform, config);
 }
 
 } // namespace lidar_utils

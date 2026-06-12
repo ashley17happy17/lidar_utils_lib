@@ -19,12 +19,12 @@ This library provides common functions for LiDAR point cloud processing.
     - [Read Content](#read-content)
     - [Read File](#read-file)
     - [Save File](#save-file)
-- [Motion](#motion)
-    - [Direct Georeference](#direct-georeference)
-    - [Motion Compensate And DG](#motion-compensate-and-dg)  
 - [Registration](#registration)
     - [Scan to Map Matching](#scan-to-map-matching)
     - [Scan to Scan Matching](#scan-to-scan-matching)
+- [Transform](#transform)
+    - [Direct Georeference](#direct-georeference)
+    - [Motion Compensate And DG](#motion-compensate-and-dg)  \
 
 ## Functions
 - ### Common
@@ -91,7 +91,7 @@ This library provides common functions for LiDAR point cloud processing.
         - Usage:
             - `void saveFile(CloudType::Ptr &cloud, std::string &filepath, FileFormat format)`
             - `void saveFile(CloudType::Ptr &cloud, std::vector<double> &timestamps, std::string &filepath, FileFormat format)`
-- ### Motion
+- ### Transform
     - #### [Direct Georeference](#direct-georeference)
         - Intro: Direct Georeference of the point cloud.
         - Usage:

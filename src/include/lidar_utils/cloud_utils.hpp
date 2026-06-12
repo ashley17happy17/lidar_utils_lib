@@ -86,17 +86,12 @@ public:
                                     const Eigen::VectorXd &posNext,
                                     bool motionEnable);
 
-  static void scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map,
-                                Eigen::Matrix4d &in_transform,
-                                Eigen::Matrix4d &out_transform,
-                                float max_correspondence_distance,
-                                float voxel_size, float score_threshold);
+  static int GICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
+                  Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
+                  const RegistrationConfig &config = RegistrationConfig());
 
-  static void scanToScanMatching(CloudType::Ptr &cloud,
-                                 CloudType::Ptr &localmap,
-                                 Eigen::Matrix4d &in_transform,
-                                 Eigen::Matrix4d &out_transform,
-                                 float max_correspondence_distance,
-                                 float voxel_size, float score_threshold);
+  static int NDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
+                 Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
+                 const RegistrationConfig &config = RegistrationConfig());
 };
 } // namespace lidar_utils
