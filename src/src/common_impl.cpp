@@ -6,10 +6,10 @@ namespace lidar_utils {
 namespace internal {
 
 void executeMerge(CloudType::Ptr &base_cloud,
-                  pcl::PointCloud<pcl::PointXYZI>::ConstPtr other_cloud,
+                  ConstCloudType other_cloud,
                   float voxelSize) {
   if (!base_cloud) {
-    base_cloud.reset(new pcl::PointCloud<pcl::PointXYZI>());
+    base_cloud.reset(new CloudType());
   }
   if (!other_cloud || other_cloud->empty()) {
     return;

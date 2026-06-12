@@ -2,6 +2,11 @@
 #include <filesystem>
 #include <iostream>
 #include <pcl/io/pcd_io.h>
+#include <pdal/Options.hpp>
+#include <pdal/PointTable.hpp>
+#include <pdal/PointView.hpp>
+#include <pdal/Reader.hpp>
+#include <pdal/StageFactory.hpp>
 
 namespace fs = std::filesystem;
 namespace lidar_utils {
@@ -66,6 +71,11 @@ void executeReadFile(CloudType::Ptr &cloud, std::string &filepath,
       return;
     }
     break;
+  case FileFormat::LAS:
+    if (loadLASFile(filepath, cloud_with_time) == -1) {
+      return;
+    }
+    break;
   default:
     if (pcl::io::loadPCDFile(filepath, cloud_with_time) == -1) {
       std::cerr << "[ERROR]: Unknown file format.\n";
@@ -81,7 +91,7 @@ void executeReadFile(CloudType::Ptr &cloud, std::string &filepath,
   timestamps->reserve(cloud_with_time.size());
 
   for (const auto &pt : cloud_with_time.points) {
-    pcl::PointXYZI p_xyzi;
+    PointType p_xyzi;
     p_xyzi.x = pt.x;
     p_xyzi.y = pt.y;
     p_xyzi.z = pt.z;
@@ -89,6 +99,50 @@ void executeReadFile(CloudType::Ptr &cloud, std::string &filepath,
     cloud->push_back(p_xyzi);
     timestamps->push_back(pt.time);
   }
+}
+
+int loadLASFile(std::string &filepath,
+                pcl::PointCloud<lidar_utils::PointXYZIT> cloud) {
+  ::std::ifstream inputFile(filepath, ::std::ios::in | ::std::ios::binary);
+  if (!inputFile.is_open()) {
+    std::cerr << "[ERROR] Failed to load LAS file.\n";
+    return -1;
+  }
+
+  auto start = std::chrono::steady_clock::now();
+
+  pdal::PointTable table;
+  pdal::Options options;
+  options.add("filename", filepath);
+
+  pdal::StageFactory stageFactory;
+  pdal::Stage *reader = stageFactory.createStage("readers.las");
+  if (!reader) {
+    std::cerr << "[ERROR] Failed to create LAS reader.\n";
+    return -1;
+  }
+
+  reader->setOptions(options);
+  reader->prepare(table);
+  pdal::PointViewSet viewSet = reader->execute(table);
+  pdal::PointViewPtr view = *viewSet.begin();
+
+  for (pdal::PointId id = 0; id < view->size(); ++id) {
+    lidar_utils::PointXYZIT p_xyzit;
+    p_xyzit.x = view->getFieldAs<double>(pdal::Dimension::Id::X, id);
+    p_xyzit.y = view->getFieldAs<double>(pdal::Dimension::Id::Y, id);
+    p_xyzit.z = view->getFieldAs<double>(pdal::Dimension::Id::Z, id);
+    double intensity_raw =
+        view->getFieldAs<double>(pdal::Dimension::Id::Intensity, id);
+    p_xyzit.intensity = std::min(intensity_raw / 65535.0, 1.0);
+    p_xyzit.time = view->getFieldAs<double>(pdal::Dimension::Id::GpsTime, id);
+    cloud.push_back(p_xyzit);
+  }
+  auto end = std::chrono::steady_clock::now();
+  std::chrono::duration<double> elapsed = end - start;
+  std::cout << "[INFO] Read LAS File: " << filepath
+            << " Elapsed time: " << elapsed.count() << "s\n";
+  return 1;
 }
 
 void executeSaveFile(CloudType::Ptr &cloud, std::string &filepath,

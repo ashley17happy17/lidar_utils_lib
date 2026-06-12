@@ -13,6 +13,9 @@ void executeReadFile(CloudType::Ptr &cloud, std::string &filepath,
                      FileFormat format,
                      std::vector<double> *timestamps = nullptr);
 
+int loadLASFile(std::string &filepath,
+                pcl::PointCloud<lidar_utils::PointXYZIT> cloud);
+
 void executeSaveFile(CloudType::Ptr &cloud, std::string &filepath,
                      FileFormat format);
 

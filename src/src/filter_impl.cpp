@@ -27,8 +27,8 @@ void executeCrop(CloudType::Ptr &cloud, const Eigen::Vector3f &minBound,
   if (!cloud || cloud->empty())
     return;
 
-  pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud(
-      new pcl::PointCloud<pcl::PointXYZI>());
+  CloudType::Ptr filtered_cloud(
+      new CloudType());
   filtered_cloud->reserve(cloud->size());
 
   std::vector<double> filtered_timestamps;
@@ -74,11 +74,11 @@ void executeDenoise(CloudType::Ptr &cloud, float radius, float epsilon) {
   if (!cloud || cloud->empty())
     return;
 
-  pcl::KdTreeFLANN<pcl::PointXYZI> kdtree;
+  pcl::KdTreeFLANN<PointType> kdtree;
   kdtree.setInputCloud(cloud);
 
-  pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_copy(
-      new pcl::PointCloud<pcl::PointXYZI>(*cloud));
+  CloudType::Ptr cloud_copy(
+      new CloudType(*cloud));
 
 #pragma omp parallel for
   for (size_t i = 0; i < cloud->points.size(); ++i) {
@@ -142,8 +142,8 @@ void executeRemoveArtifact(CloudType::Ptr &cloud,
 
   size_t num_points = cloud->size();
   std::vector<size_t> high_idx;
-  pcl::PointCloud<pcl::PointXYZI>::Ptr high_pcd(
-      new pcl::PointCloud<pcl::PointXYZI>());
+  CloudType::Ptr high_pcd(
+      new CloudType());
 
   for (size_t i = 0; i < num_points; ++i) {
     if (cloud->points[i].intensity > CORE_INTENSITY_THRESHOLD) {
@@ -161,7 +161,7 @@ void executeRemoveArtifact(CloudType::Ptr &cloud,
   // Fit plane
   pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-  pcl::SACSegmentation<pcl::PointXYZI> seg;
+  pcl::SACSegmentation<PointType> seg;
   seg.setOptimizeCoefficients(true);
   seg.setModelType(pcl::SACMODEL_PLANE);
   seg.setMethodType(pcl::SAC_RANSAC);
@@ -203,10 +203,10 @@ void executeRemoveArtifact(CloudType::Ptr &cloud,
     return;
 
   // Calculate normals ONLY for the candidates (takes < 5ms instead of 1800ms)
-  pcl::NormalEstimationOMP<pcl::PointXYZI, pcl::Normal> ne;
+  pcl::NormalEstimationOMP<PointType, pcl::Normal> ne;
   ne.setNumberOfThreads(omp_get_max_threads());
-  pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(
-      new pcl::search::KdTree<pcl::PointXYZI>());
+  pcl::search::KdTree<PointType>::Ptr tree(
+      new pcl::search::KdTree<PointType>());
   ne.setSearchMethod(tree);
   ne.setInputCloud(cloud);
   ne.setIndices(candidate_indices);
@@ -254,8 +254,8 @@ void executeRemoveArtifact(CloudType::Ptr &cloud,
   //           << std::endl;
 
   // Delete ghost points
-  pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud(
-      new pcl::PointCloud<pcl::PointXYZI>());
+  CloudType::Ptr filtered_cloud(
+      new CloudType());
   std::vector<double> filtered_timestamps;
   std::set<size_t> ghost_set(ghost_indices.begin(), ghost_indices.end());
 
@@ -280,7 +280,7 @@ void executeDownsample(CloudType::Ptr &cloud, float voxelSize,
     return;
 
   if (!timestamps) {
-    pcl::VoxelGrid<pcl::PointXYZI> ds;
+    pcl::VoxelGrid<PointType> ds;
     ds.setLeafSize(voxelSize, voxelSize, voxelSize);
     ds.setInputCloud(cloud);
     ds.filter(*cloud);
@@ -317,7 +317,7 @@ void executeDownsample(CloudType::Ptr &cloud, float voxelSize,
   timestamps->reserve(temp_cloud->size());
 
   for (const auto &pt : temp_cloud->points) {
-    pcl::PointXYZI p_xyzi;
+    PointType p_xyzi;
     p_xyzi.x = pt.x;
     p_xyzi.y = pt.y;
     p_xyzi.z = pt.z;
@@ -338,8 +338,8 @@ void executeRemoveNaN(CloudType::Ptr &cloud, std::vector<double> *timestamps) {
   }
 
   std::vector<int> indices;
-  pcl::PointCloud<pcl::PointXYZI>::Ptr temp_cloud(
-      new pcl::PointCloud<pcl::PointXYZI>());
+  CloudType::Ptr temp_cloud(
+      new CloudType());
   pcl::removeNaNFromPointCloud(*cloud, *temp_cloud, indices);
 
   std::vector<double> filtered_timestamps;

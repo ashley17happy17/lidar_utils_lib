@@ -1,93 +1,117 @@
 # LiDAR_Utils_Lib
 
+## Introduction
+This library provides common functions for LiDAR point cloud processing.
 
+## Content
+- [Common](#common)
+    - [Merge](#merge)
+- [EOP](#eop)
+    - [EOP Calibration](#eop-calibration)
+    - [Get Extrinsics](#get-extrinsics)
+- [Filter](#filter)
+    - [Crop](#crop)
+    - [Denoise](#denoise)
+    - [Remove Artifact](#remove-artifact)
+    - [Downsample](#downsample)
+    - [Remove NaN](#remove-nan)
+- [IO](#io)
+    - [Read Content](#read-content)
+    - [Read File](#read-file)
+    - [Save File](#save-file)
+- [Motion](#motion)
+    - [Direct Georeference](#direct-georeference)
+    - [Motion Compensate And DG](#motion-compensate-and-dg)  
+- [Registration](#registration)
+    - [Scan to Map Matching](#scan-to-map-matching)
+    - [Scan to Scan Matching](#scan-to-scan-matching)
 
-## Getting started
+## Functions
+- ### Common
+    - #### [Merge](#merge)
+        - Intro: Merge two point clouds with voxelization.
+        - Usage: 
+            - `void mergeCloud(CloudType::Ptr &base_cloud, const CloudType::ConstPtr &other_cloud, float voxelSize)`
+- ### EOP
+    - #### [EOP Calibration](#eop-calibration)
+        - Intro: EOP calibration of GNSS and LiDAR.
+        - Usage: 
+            - `void eopCalib(const Eigen::MatrixXd &la, const Eigen::MatrixXd &bs, const Eigen::Vector3d &laCalib, const Eigen::Vector3d &bsCalib)`
+        - Parameter:
+            - `la`: Leverarm from GNSS to LiDAR.
+            - `bs`: Boresight from GNSS to LiDAR.
+            - `laCalib`: Leverarm calibration.
+            - `bsCalib`: Boresight calibration.
+        
+    - #### [Get Extrinsics](#get-extrinsics)
+        - Intro: Get the transformation matrix between two sensors.
+        - Usage: 
+            - `Eigen::Matrix4d getExtrinsics(const std::string &type, const Eigen::Vector3d &trans, const Eigen::Vector3d &rot)`
+        - Parameter:
+            - `type`: The type of the sensor.
+            - `trans`: The translation between the two sensors.
+            - `rot`: The rotation between the two sensors.
+- ### Filter
+    - #### [Crop](#crop)
+        - Intro: Cuboid geometric cropping.
+        - Usage: 
+            - `void cropCloud(CloudType::Ptr &cloud, const Eigen::Vector3f &minBound, const Eigen::Vector3f &maxBound)`
+            - `void cropCloud(CloudType::Ptr &cloud, std::vector<double> &timestamps, const Eigen::Vector3f &minBound, const Eigen::Vector3f &maxBound)`
+    - #### [Denoise](#denoise)
+        - Intro: Guided Filter for denoising.
+        - Usage: 
+            - `void denoiseCloud(CloudType::Ptr &cloud, float radius, float epsilon)`
+    - #### [Remove Artifact](#remove-artifact)
+        - Intro: Removes ghost artifacts.
+        - Usage: 
+            - `void removeArtifactCloud(CloudType::Ptr &cloud)`
+            - `void removeArtifactCloud(CloudType::Ptr &cloud, std::vector<double> &timestamps)`
+    - #### [Downsample](#downsample)
+        - Intro: Downsample the point cloud with voxel size.
+        - Usage:
+            - `void downsampleCloud(CloudType::Ptr &cloud, float voxelSize)`
+            - `void downsampleCloud(CloudType::Ptr &cloud, std::vector<double> &timestamps, float voxelSize)`
+    - #### [Remove NaN](#remove-nan)
+        - Intro: Remove NaN points from the point cloud.
+        - Usage: 
+            - `void removeNaNCloud(CloudType::Ptr &cloud)`
+            - `void removeNaNCloud(CloudType::Ptr &cloud, std::vector<double> &timestamps)`
+- ### IO
+    - #### [Read Content](#read-content)
+        - Intro: Read the content of the directory.
+        - Usage: 
+            - `void readContent(const std::string &path, std::vector<LidarContent> &file_list)`
+    - #### [Read File](#read-file)
+        - Intro: Read the point cloud from a file.
+        - Usage:
+            - `void readFile(CloudType::Ptr &cloud, std::string &filepath, FileFormat format)`
+            - `void readFile(CloudType::Ptr &cloud, std::vector<double> &timestamps, std::string &filepath, FileFormat format)`
+    - #### [Save File](#save-file)
+        - Intro: Save the point cloud to a file.
+        - Usage:
+            - `void saveFile(CloudType::Ptr &cloud, std::string &filepath, FileFormat format)`
+            - `void saveFile(CloudType::Ptr &cloud, std::vector<double> &timestamps, std::string &filepath, FileFormat format)`
+- ### Motion
+    - #### [Direct Georeference](#direct-georeference)
+        - Intro: Direct Georeference of the point cloud.
+        - Usage:
+            - `void directGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4d &trans)`
+    - #### [Motion Compensate And DG](#motion-compensate-and-dg)
+        - Intro: Motion compensation and direct georeferencing of the point cloud.
+        - Usage:
+            - `void motionCompensateAndDG(CloudType::Ptr &cloud, const std::vector<double> &timestamps, const Eigen::VectorXd &posCurr, const Eigen::VectorXd &posNext, bool motionEnable)`
+- ### Registration
+    - #### [Scan To Map Matching](#scan-to-map-matching)
+        - Intro: Iterative Closest Point (ICP) based scan-to-map matching.
+        - Usage:
+            - `void scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map, Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform, float max_correspondence_distance, float voxel_size, float score_threshold)`
+    - #### [scan To Scan Matching](#scan-to-scan-matching)
+        - Intro: Iterative Closest Point (ICP) based scan-to-scan matching.
+        - Usage:
+            - `void scanToScanMatching(CloudType::Ptr &cloud, CloudType::Ptr &localmap, Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform, float max_correspondence_distance, float voxel_size, float score_threshold)`
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://devops.foxconn.com/28500/lidar_utils_lib.git
-git branch -M main
-git push -uf origin main
-```
-
-## Integrate with your tools
-
-* [Set up project integrations](https://devops.foxconn.com/28500/lidar_utils_lib/-/settings/integrations)
-
-## Collaborate with your team
-
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+## Reference
+1. PCL documentation: https://pointclouds.org/documentation/
+2. PDAL documentation: https://pdal.io/en/latest/download.html
+3. OMP documentation: https://www.openmp.org/documentation/
+4. Point Cloud Denoise: https://github.com/aipiano/guided-filter-point-cloud-denoise.git

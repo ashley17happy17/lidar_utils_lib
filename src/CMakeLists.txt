@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(PCL REQUIRED COMPONENTS common io filters segmentation features search kdtree)
 find_package(Eigen3 REQUIRED)
 find_package(OpenMP REQUIRED)
+find_package(PDAL REQUIRED)
 
 # 蒐集所有實作原始碼
 file(GLOB_RECURSE SRC_FILES "src/*.cpp")
@@ -26,7 +27,7 @@ target_include_directories(lidar_utils
 
 target_link_libraries(lidar_utils PUBLIC 
     ${PCL_LIBRARIES} 
-    Eigen3::Eigen    OpenMP::OpenMP_CXX
+    Eigen3::Eigen    OpenMP::OpenMP_CXX     ${PDAL_LIBRARIES} 
 )
 
 # # 建立測試程式

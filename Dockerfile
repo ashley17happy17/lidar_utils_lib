@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-pcl-conversions \
     libpcl-dev \
     libeigen3-dev \
+    pdal libpdal-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 設定預設工作目錄

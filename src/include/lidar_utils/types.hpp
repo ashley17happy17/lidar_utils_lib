@@ -7,6 +7,10 @@
 
 namespace lidar_utils {
 
+using PointType = pcl::PointXYZI;
+using CloudType = pcl::PointCloud<PointType>;
+using ConstCloudType = CloudType::ConstPtr;
+
 // 支援的光達型號選單
 enum class SensorType {
   OUSTER_OS1_128,
@@ -15,11 +19,9 @@ enum class SensorType {
   VELODYNE_VLS128
 };
 
-using PointType = pcl::PointXYZI;
-using CloudType = pcl::PointCloud<PointType>;
-using ConstCloudType = pcl::PointCloud<pcl::PointXYZI>::ConstPtr;
-
 enum class FileFormat { PCD_BINARY, PCD_ASCII, LAS };
+
+enum class CoordinateType { WGS84, TWD97 };
 
 struct LidarContent {
   double timestamp;
