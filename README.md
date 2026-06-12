@@ -20,8 +20,8 @@ This library provides common functions for LiDAR point cloud processing.
     - [Read File](#read-file)
     - [Save File](#save-file)
 - [Registration](#registration)
-    - [Scan to Map Matching](#scan-to-map-matching)
-    - [Scan to Scan Matching](#scan-to-scan-matching)
+    - [GICP](#gicp)
+    - [NDT](#ndt)
 - [Transform](#transform)
     - [Direct Georeference](#direct-georeference)
     - [Motion Compensate And DG](#motion-compensate-and-dg)  \
@@ -91,6 +91,15 @@ This library provides common functions for LiDAR point cloud processing.
         - Usage:
             - `void saveFile(CloudType::Ptr &cloud, std::string &filepath, FileFormat format)`
             - `void saveFile(CloudType::Ptr &cloud, std::vector<double> &timestamps, std::string &filepath, FileFormat format)`
+- ### Registration
+    - #### [GICP](#gicp)
+        - Intro: Iterative Closest Point (ICP) based scan-to-map matching.
+        - Usage:
+            - `int GICP(CloudType::Ptr &cloud, CloudType::Ptr &map, Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform, const RegistrationConfig &config)`
+    - #### [NDT](#ndt)
+        - Intro: Iterative Closest Point (ICP) based scan-to-scan matching.
+        - Usage:
+            - `int NDT(CloudType::Ptr &cloud, CloudType::Ptr &map, Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform, const RegistrationConfig &config)`
 - ### Transform
     - #### [Direct Georeference](#direct-georeference)
         - Intro: Direct Georeference of the point cloud.
@@ -100,15 +109,6 @@ This library provides common functions for LiDAR point cloud processing.
         - Intro: Motion compensation and direct georeferencing of the point cloud.
         - Usage:
             - `void motionCompensateAndDG(CloudType::Ptr &cloud, const std::vector<double> &timestamps, const Eigen::VectorXd &posCurr, const Eigen::VectorXd &posNext, bool motionEnable)`
-- ### Registration
-    - #### [Scan To Map Matching](#scan-to-map-matching)
-        - Intro: Iterative Closest Point (ICP) based scan-to-map matching.
-        - Usage:
-            - `void scanToMapMatching(CloudType::Ptr &cloud, CloudType::Ptr &map, Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform, float max_correspondence_distance, float voxel_size, float score_threshold)`
-    - #### [scan To Scan Matching](#scan-to-scan-matching)
-        - Intro: Iterative Closest Point (ICP) based scan-to-scan matching.
-        - Usage:
-            - `void scanToScanMatching(CloudType::Ptr &cloud, CloudType::Ptr &localmap, Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform, float max_correspondence_distance, float voxel_size, float score_threshold)`
 
 ## Reference
 1. PCL documentation: https://pointclouds.org/documentation/
