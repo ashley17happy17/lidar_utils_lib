@@ -8,6 +8,8 @@ This library provides common functions for LiDAR point cloud processing.
     - [Merge](#merge)
 - [EOP](#eop)
     - [EOP Calibration](#eop-calibration)
+    - [Transform EOP](#transform-eop)
+    - [Print EOP](#print-eop)
     - [Get Extrinsics](#get-extrinsics)
 - [Filter](#filter)
     - [Crop](#crop)
