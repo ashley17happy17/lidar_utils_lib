@@ -5,9 +5,9 @@
 
 namespace lidar_utils {
 namespace internal {
-Eigen::Matrix4d
-executeEOPCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions,
-                const std::vector<Eigen::Matrix4d> &lidar_relative_motions) {
+Eigen::Matrix4d executeEOPCalibDynamic(
+    const std::vector<Eigen::Matrix4d> &gps_relative_motions,
+    const std::vector<Eigen::Matrix4d> &lidar_relative_motions) {
   if (gps_relative_motions.size() != lidar_relative_motions.size() ||
       gps_relative_motions.empty()) {
     std::cerr << "[ERROR] EOP Calibration requires equal and non-empty motion "
@@ -94,6 +94,39 @@ executeEOPCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions,
   EOP.block<3, 1>(0, 3) = t_X;
 
   return EOP;
+}
+
+Eigen::Matrix4d
+executeEOPCalibStatic(const std::vector<Eigen::Matrix4d> &absolute_extrinsics) {
+  if (absolute_extrinsics.empty()) {
+    std::cerr << "[ERROR] Static EOP Calibration requires non-empty absolutes."
+              << std::endl;
+    return Eigen::Matrix4d::Identity();
+  }
+
+  // Least Squares Averaging of Absolute Extrinsics
+  Eigen::Vector3d mean_t = Eigen::Vector3d::Zero();
+  Eigen::Matrix4d Q = Eigen::Matrix4d::Zero();
+
+  for (const auto &X_i : absolute_extrinsics) {
+    mean_t += X_i.block<3, 1>(0, 3);
+    Eigen::Quaterniond q(X_i.block<3, 3>(0, 0));
+    Eigen::Vector4d q_vec(q.w(), q.x(), q.y(), q.z());
+    Q += q_vec * q_vec.transpose();
+  }
+  mean_t /= absolute_extrinsics.size();
+
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix4d> eigensolver(Q);
+  Eigen::Vector4d optimal_q =
+      eigensolver.eigenvectors().col(3); // Eigenvector for largest eigenvalue
+  Eigen::Quaterniond q_opt(optimal_q(0), optimal_q(1), optimal_q(2),
+                           optimal_q(3));
+
+  Eigen::Matrix4d eop_calib = Eigen::Matrix4d::Identity();
+  eop_calib.block<3, 3>(0, 0) = q_opt.toRotationMatrix();
+  eop_calib.block<3, 1>(0, 3) = mean_t;
+
+  return eop_calib;
 }
 
 Eigen::Matrix4d executeTransformEOP(const Eigen::Matrix4d &eop,

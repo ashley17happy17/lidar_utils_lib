@@ -7,7 +7,8 @@ This library provides common functions for LiDAR point cloud processing.
 - [Common](#common)
     - [Merge](#merge)
 - [EOP](#eop)
-    - [EOP Calibration](#eop-calibration)
+    - [EOP Calibration Dynamic](#eop-calibration-dynamic)
+    - [EOP Calibration Static](#eop-calibration-static)
     - [Transform EOP](#transform-eop)
     - [Print EOP](#print-eop)
     - [Get Extrinsics](#get-extrinsics)
@@ -35,10 +36,14 @@ This library provides common functions for LiDAR point cloud processing.
         - Usage: 
             - `void mergeCloud(CloudType::Ptr &base_cloud, const CloudType::ConstPtr &other_cloud, float voxelSize)`
 - ### EOP
-    - #### [EOP Calibration](#eop-calibration)
-        - Intro: EOP calibration of GNSS and LiDAR.
+    - #### [EOP Calibration Dynamic](#eop-calibration-dynamic)
+        - Intro: Dynamic EOP calibration of GNSS and LiDAR.
         - Usage: 
-            - `Eigen::Matrix4d eopCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions, const std::vector<Eigen::Matrix4d> &lidar_relative_motions)`
+            - `Eigen::Matrix4d eopCalibDynamic(const std::vector<Eigen::Matrix4d> &gps_relative_motions, const std::vector<Eigen::Matrix4d> &lidar_relative_motions)`
+    - #### [EOP Calibration Static](#eop-calibration-static)
+        - Intro: Static EOP calibration of GNSS and LiDAR.
+        - Usage: 
+            - `Eigen::Matrix4d eopCalibStatic(const std::vector<Eigen::Matrix4d> &absolute_extrinsics)`
     - #### [Transform EOP](#transform-eop)
         - Intro: Transform an EOP calibration matrix by an external offset (Leverarm in meters, Boresight in degrees). Useful for shifting the base frame (e.g., GNSS -> LiDAR to VehicleCenter -> LiDAR).
         - Usage:

@@ -4,9 +4,12 @@
 namespace lidar_utils {
 namespace internal {
 
+Eigen::Matrix4d executeEOPCalibDynamic(
+    const std::vector<Eigen::Matrix4d> &gps_relative_motions,
+    const std::vector<Eigen::Matrix4d> &lidar_relative_motions);
+
 Eigen::Matrix4d
-executeEOPCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions,
-                const std::vector<Eigen::Matrix4d> &lidar_relative_motions);
+executeEOPCalibStatic(const std::vector<Eigen::Matrix4d> &absolute_extrinsics);
 
 Eigen::Matrix4d executeTransformEOP(const Eigen::Matrix4d &eop,
                                     const Eigen::Vector3d &out_la,

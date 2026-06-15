@@ -17,11 +17,18 @@ public:
                          float voxelSize);
 
   /**
-   * @brief eopCalib: Calculates EOP
+   * @brief eopCalibDynamic: Dynamically calculates EOP without HDmap.
    */
   static Eigen::Matrix4d
-  eopCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions,
-           const std::vector<Eigen::Matrix4d> &lidar_relative_motions);
+  eopCalibDynamic(const std::vector<Eigen::Matrix4d> &gps_relative_motions,
+                  const std::vector<Eigen::Matrix4d> &lidar_relative_motions);
+
+  /**
+   * @brief eopCalibStatic: Calculates EOP using Static Absolute Map-Based Least
+   * Squares
+   */
+  static Eigen::Matrix4d
+  eopCalibStatic(const std::vector<Eigen::Matrix4d> &absolute_extrinsics);
 
   /**
    * @brief transformEOP: Transforms EOP
