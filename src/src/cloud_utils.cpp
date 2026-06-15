@@ -20,10 +20,13 @@ void CloudUtils::mergeCloud(CloudType::Ptr &base_cloud,
 /***************************
  *  eop_impl               *
  ***************************/
-void CloudUtils::eopCalib(const Eigen::MatrixXd &la, const Eigen::MatrixXd &bs,
-                          const Eigen::Vector3d &laCalib,
-                          const Eigen::Vector3d &bsCalib) {
-  internal::executeEOPCalib(la, bs, laCalib, bsCalib);
+Eigen::Matrix4d CloudUtils::eopCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions,
+                                     const std::vector<Eigen::Matrix4d> &lidar_relative_motions) {
+  return internal::executeEOPCalib(gps_relative_motions, lidar_relative_motions);
+}
+
+void CloudUtils::printEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name) {
+  internal::executePrintEOP(eop, sensor_name);
 }
 
 Eigen::Matrix4d CloudUtils::getExtrinsics(const std::string &type,

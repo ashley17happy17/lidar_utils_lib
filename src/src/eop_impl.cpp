@@ -5,9 +5,108 @@
 
 namespace lidar_utils {
 namespace internal {
-void executeEOPCalib(const Eigen::MatrixXd &la, const Eigen::MatrixXd &bs,
-                     const Eigen::Vector3d &laCalib,
-                     const Eigen::Vector3d &bsCalib) {}
+Eigen::Matrix4d executeEOPCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions,
+                                const std::vector<Eigen::Matrix4d> &lidar_relative_motions) {
+  if (gps_relative_motions.size() != lidar_relative_motions.size() || gps_relative_motions.empty()) {
+    std::cerr << "[ERROR] EOP Calibration requires equal and non-empty motion sequences." << std::endl;
+    return Eigen::Matrix4d::Identity();
+  }
+
+  size_t n = gps_relative_motions.size();
+
+  // ---------------------------------------------------------
+  // Step 1: Solve for Boresight (Rotation R_X)
+  // Equation: R_A * R_X = R_X * R_B  =>  (I \otimes R_A - R_B^T \otimes I) * vec(R_X) = 0
+  // ---------------------------------------------------------
+  Eigen::MatrixXd M(9 * n, 9);
+  M.setZero();
+  Eigen::Matrix3d I3 = Eigen::Matrix3d::Identity();
+
+  for (size_t i = 0; i < n; ++i) {
+    Eigen::Matrix3d R_A = gps_relative_motions[i].block<3, 3>(0, 0);
+    Eigen::Matrix3d R_B = lidar_relative_motions[i].block<3, 3>(0, 0);
+
+    Eigen::MatrixXd K1(9, 9); K1.setZero();
+    Eigen::MatrixXd K2(9, 9); K2.setZero();
+    Eigen::Matrix3d R_B_T = R_B.transpose();
+
+    for(int r = 0; r < 3; ++r) {
+      for(int c = 0; c < 3; ++c) {
+        K1.block<3, 3>(3 * r, 3 * c) = I3(r, c) * R_A;
+        K2.block<3, 3>(3 * r, 3 * c) = R_B_T(r, c) * I3;
+      }
+    }
+    M.block<9, 9>(9 * i, 0) = K1 - K2;
+  }
+
+  // Solve M * x = 0 via SVD
+  Eigen::JacobiSVD<Eigen::MatrixXd> svd(M, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::VectorXd x = svd.matrixV().col(8); // Null space corresponds to the smallest singular value
+
+  // Reshape column-major vector to 3x3 matrix
+  Eigen::Matrix3d R_X_est;
+  R_X_est << x(0), x(3), x(6),
+             x(1), x(4), x(7),
+             x(2), x(5), x(8);
+
+  // Project onto SO(3) to guarantee a valid rotation matrix
+  Eigen::JacobiSVD<Eigen::Matrix3d> svd_proj(R_X_est, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::Matrix3d R_X = svd_proj.matrixU() * svd_proj.matrixV().transpose();
+  if (R_X.determinant() < 0) {
+    Eigen::Matrix3d V = svd_proj.matrixV();
+    V.col(2) *= -1;
+    R_X = svd_proj.matrixU() * V.transpose();
+  }
+
+  // ---------------------------------------------------------
+  // Step 2: Solve for Lever Arm (Translation t_X)
+  // Equation: (R_A - I) * t_X = R_X * t_B - t_A
+  // ---------------------------------------------------------
+  Eigen::MatrixXd C(3 * n, 3);
+  Eigen::VectorXd d(3 * n);
+
+  for (size_t i = 0; i < n; ++i) {
+    Eigen::Matrix3d R_A = gps_relative_motions[i].block<3, 3>(0, 0);
+    Eigen::Vector3d t_A = gps_relative_motions[i].block<3, 1>(0, 3);
+    Eigen::Vector3d t_B = lidar_relative_motions[i].block<3, 1>(0, 3);
+
+    C.block<3, 3>(3 * i, 0) = R_A - I3;
+    d.segment<3>(3 * i) = R_X * t_B - t_A;
+  }
+
+  // Solve C * t_X = d via SVD
+  Eigen::Vector3d t_X = C.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(d);
+
+  // ---------------------------------------------------------
+  // Step 3: Combine and return
+  // ---------------------------------------------------------
+  Eigen::Matrix4d EOP = Eigen::Matrix4d::Identity();
+  EOP.block<3, 3>(0, 0) = R_X;
+  EOP.block<3, 1>(0, 3) = t_X;
+
+  return EOP;
+}
+
+void executePrintEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name) {
+  Eigen::Matrix3d R = eop.block<3, 3>(0, 0);
+  Eigen::Vector3d t = eop.block<3, 1>(0, 3);
+  Eigen::Quaterniond q(R);
+  
+  // Get euler angles (ZYX convention: Yaw, Pitch, Roll)
+  Eigen::Vector3d euler = R.eulerAngles(2, 1, 0); 
+  
+  // Convert to degrees
+  euler *= 180.0 / M_PI;
+
+  std::cout << "\n============================================================" << std::endl;
+  std::cout << "[EOP Calibration Result] GNSS to " << sensor_name << std::endl;
+  std::cout << "============================================================" << std::endl;
+  std::cout << "Leverarm (m)    : [X: " << t.x() << ", Y: " << t.y() << ", Z: " << t.z() << "]" << std::endl;
+  std::cout << "Boresight (deg) : [Roll: " << euler.z() << ", Pitch: " << euler.y() << ", Yaw: " << euler.x() << "]" << std::endl;
+  std::cout << "Quaternion      : [w: " << q.w() << ", x: " << q.x() << ", y: " << q.y() << ", z: " << q.z() << "]" << std::endl;
+  std::cout << "Rotation Matrix :\n" << R << std::endl;
+  std::cout << "============================================================\n" << std::endl;
+}
 
 Eigen::Matrix4d executeGetExtrinsics(const std::string &type,
                                      const Eigen::Vector3d &trans,

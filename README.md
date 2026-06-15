@@ -24,7 +24,7 @@ This library provides common functions for LiDAR point cloud processing.
     - [NDT](#ndt)
 - [Transform](#transform)
     - [Direct Georeference](#direct-georeference)
-    - [Motion Compensate And DG](#motion-compensate-and-dg)  \
+    - [Motion Compensate And DG](#motion-compensate-and-dg)
 
 ## Functions
 - ### Common
@@ -36,12 +36,11 @@ This library provides common functions for LiDAR point cloud processing.
     - #### [EOP Calibration](#eop-calibration)
         - Intro: EOP calibration of GNSS and LiDAR.
         - Usage: 
-            - `void eopCalib(const Eigen::MatrixXd &la, const Eigen::MatrixXd &bs, const Eigen::Vector3d &laCalib, const Eigen::Vector3d &bsCalib)`
-        - Parameter:
-            - `la`: Leverarm from GNSS to LiDAR.
-            - `bs`: Boresight from GNSS to LiDAR.
-            - `laCalib`: Leverarm calibration.
-            - `bsCalib`: Boresight calibration.
+            - `Eigen::Matrix4d eopCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions, const std::vector<Eigen::Matrix4d> &lidar_relative_motions)`
+    - #### [Print EOP](#print-eop)
+        - Intro: Print the EOP parameters (Leverarm, Boresight, Quaternion, Rotation Matrix) cleanly to the console.
+        - Usage:
+            - `void printEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name = "LiDAR")`
         
     - #### [Get Extrinsics](#get-extrinsics)
         - Intro: Get the transformation matrix between two sensors.
@@ -115,3 +114,4 @@ This library provides common functions for LiDAR point cloud processing.
 2. PDAL documentation: https://pdal.io/en/latest/download.html
 3. OMP documentation: https://www.openmp.org/documentation/
 4. Point Cloud Denoise: https://github.com/aipiano/guided-filter-point-cloud-denoise.git
+5. Small GICP lib: https://github.com/koide3/small_gicp.git
