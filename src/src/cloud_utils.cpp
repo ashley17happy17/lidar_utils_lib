@@ -3,8 +3,8 @@
 #include "internal/eop_impl.hpp"
 #include "internal/filter_impl.hpp"
 #include "internal/io_impl.hpp"
-#include "internal/transform_impl.hpp"
 #include "internal/registration_impl.hpp"
+#include "internal/transform_impl.hpp"
 
 namespace lidar_utils {
 
@@ -20,12 +20,21 @@ void CloudUtils::mergeCloud(CloudType::Ptr &base_cloud,
 /***************************
  *  eop_impl               *
  ***************************/
-Eigen::Matrix4d CloudUtils::eopCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions,
-                                     const std::vector<Eigen::Matrix4d> &lidar_relative_motions) {
-  return internal::executeEOPCalib(gps_relative_motions, lidar_relative_motions);
+Eigen::Matrix4d CloudUtils::eopCalib(
+    const std::vector<Eigen::Matrix4d> &gps_relative_motions,
+    const std::vector<Eigen::Matrix4d> &lidar_relative_motions) {
+  return internal::executeEOPCalib(gps_relative_motions,
+                                   lidar_relative_motions);
 }
 
-void CloudUtils::printEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name) {
+Eigen::Matrix4d CloudUtils::transformEOP(const Eigen::Matrix4d &eop,
+                                         const Eigen::Vector3d &out_la,
+                                         const Eigen::Vector3d &out_bs) {
+  return internal::executeTransformEOP(eop, out_la, out_bs);
+}
+
+void CloudUtils::printEOP(const Eigen::Matrix4d &eop,
+                          const std::string &sensor_name) {
   internal::executePrintEOP(eop, sensor_name);
 }
 

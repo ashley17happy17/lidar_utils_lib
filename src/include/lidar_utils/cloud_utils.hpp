@@ -16,10 +16,16 @@ public:
                          const CloudType::ConstPtr &other_cloud,
                          float voxelSize);
 
-  static Eigen::Matrix4d eopCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions,
-                                  const std::vector<Eigen::Matrix4d> &lidar_relative_motions);
+  static Eigen::Matrix4d
+  eopCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions,
+           const std::vector<Eigen::Matrix4d> &lidar_relative_motions);
 
-  static void printEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name = "LiDAR");
+  static Eigen::Matrix4d transformEOP(const Eigen::Matrix4d &eop,
+                                      const Eigen::Vector3d &out_la,
+                                      const Eigen::Vector3d &out_bs);
+
+  static void printEOP(const Eigen::Matrix4d &eop,
+                       const std::string &sensor_name = "LiDAR");
 
   static Eigen::Matrix4d getExtrinsics(const std::string &type,
                                        const Eigen::Vector3d &trans,

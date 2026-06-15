@@ -37,11 +37,14 @@ This library provides common functions for LiDAR point cloud processing.
         - Intro: EOP calibration of GNSS and LiDAR.
         - Usage: 
             - `Eigen::Matrix4d eopCalib(const std::vector<Eigen::Matrix4d> &gps_relative_motions, const std::vector<Eigen::Matrix4d> &lidar_relative_motions)`
+    - #### [Transform EOP](#transform-eop)
+        - Intro: Transform an EOP calibration matrix by an external offset (Leverarm in meters, Boresight in degrees). Useful for shifting the base frame (e.g., GNSS -> LiDAR to VehicleCenter -> LiDAR).
+        - Usage:
+            - `Eigen::Matrix4d transformEOP(const Eigen::Matrix4d &eop, const Eigen::Vector3d &out_la, const Eigen::Vector3d &out_bs)`
     - #### [Print EOP](#print-eop)
         - Intro: Print the EOP parameters (Leverarm, Boresight, Quaternion, Rotation Matrix) cleanly to the console.
         - Usage:
-            - `void printEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name = "LiDAR")`
-        
+            - `void printEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name = "LiDAR")`        
     - #### [Get Extrinsics](#get-extrinsics)
         - Intro: Get the transformation matrix between two sensors.
         - Usage: 
