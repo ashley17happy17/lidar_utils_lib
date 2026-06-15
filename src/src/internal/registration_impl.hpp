@@ -7,7 +7,7 @@
 namespace lidar_utils {
 namespace internal {
 
-std::shared_ptr<small_gicp::PointCloud>
+inline std::shared_ptr<small_gicp::PointCloud>
 toGicpCloud(const CloudType::Ptr &pcl_cloud) {
   auto gicp_cloud = std::make_shared<small_gicp::PointCloud>();
   gicp_cloud->points.resize(pcl_cloud->size());
