@@ -26,7 +26,9 @@ void executeReadContent(const std::string &filepath,
             file_list.push_back({ts, entry.path().string()});
           } catch (...) {
             std::cerr << "[WARN] Failed to parse timestamp from filename: "
-                      << entry.path().string() << std::endl;
+                      << entry.path().string()
+                      << ". Defaulting timestamp to -1.0." << std::endl;
+            file_list.push_back({-1.0, entry.path().string()});
           }
         }
       }
@@ -37,16 +39,21 @@ void executeReadContent(const std::string &filepath,
   }
 
   // Sort files sequentially by timestamp to allow fast lookup for
-  // synchronization
+  // synchronization. If timestamps are equal (e.g., defaulted to -1.0),
+  // sort by filename.
   std::sort(file_list.begin(), file_list.end(),
             [](const LidarContent &a, const LidarContent &b) {
+              if (a.timestamp == b.timestamp) {
+                return a.filename < b.filename;
+              }
               return a.timestamp < b.timestamp;
             });
 }
 
 void executeReadFile(CloudType::Ptr &cloud, std::string &filepath,
                      FileFormat format, std::vector<double> *timestamps) {
-  // Always load into the custom IT structure first to handle all formats robustly
+  // Always load into the custom IT structure first to handle all formats
+  // robustly
   pcl::PointCloud<lidar_utils::PointXYZIT> cloud_with_time;
   switch (format) {
   case FileFormat::PCD_BINARY:
@@ -61,7 +68,8 @@ void executeReadFile(CloudType::Ptr &cloud, std::string &filepath,
       }
     }
     if (!has_time && timestamps) {
-      std::cerr << "[WARN] PCD file does not contain timestamps! Downstream motion compensation will fail.\n";
+      std::cerr << "[WARN] PCD file does not contain timestamps! Downstream "
+                   "motion compensation will fail.\n";
     }
 
     if (pcl::io::loadPCDFile(filepath, cloud_with_time) == -1) {
@@ -86,7 +94,7 @@ void executeReadFile(CloudType::Ptr &cloud, std::string &filepath,
   // Copy into output cloud and optionally extract timestamps
   cloud->clear();
   cloud->reserve(cloud_with_time.size());
-  
+
   if (timestamps) {
     timestamps->clear();
     timestamps->reserve(cloud_with_time.size());
@@ -99,7 +107,7 @@ void executeReadFile(CloudType::Ptr &cloud, std::string &filepath,
     p_xyzi.z = pt.z;
     p_xyzi.intensity = pt.intensity;
     cloud->push_back(p_xyzi);
-    
+
     if (timestamps) {
       timestamps->push_back(pt.time);
     }
@@ -135,7 +143,8 @@ int loadLASFile(std::string &filepath,
   pdal::PointLayoutPtr layout = table.layout();
   bool has_time = layout->hasDim(pdal::Dimension::Id::GpsTime);
   if (!has_time) {
-    std::cerr << "[WARN] LAS file does not contain GpsTime! Downstream motion compensation will fail.\n";
+    std::cerr << "[WARN] LAS file does not contain GpsTime! Downstream motion "
+                 "compensation will fail.\n";
   }
 
   for (pdal::PointId id = 0; id < view->size(); ++id) {
@@ -146,13 +155,13 @@ int loadLASFile(std::string &filepath,
     double intensity_raw =
         view->getFieldAs<double>(pdal::Dimension::Id::Intensity, id);
     p_xyzit.intensity = std::min(intensity_raw / 65535.0, 1.0);
-    
+
     if (has_time) {
       p_xyzit.time = view->getFieldAs<double>(pdal::Dimension::Id::GpsTime, id);
     } else {
       p_xyzit.time = 0.0;
     }
-    
+
     cloud.push_back(p_xyzit);
   }
   auto end = std::chrono::steady_clock::now();
