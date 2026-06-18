@@ -155,17 +155,25 @@ Eigen::Matrix4d executeTransformEOP(const Eigen::Matrix4d &eop,
   return T_offset * eop;
 }
 
-void executePrintEOP(const Eigen::Matrix4d &eop,
-                     const std::string &sensor_name) {
+void executePrintEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name,
+                     DCMOrder order) {
   Eigen::Matrix3d R = eop.block<3, 3>(0, 0);
   Eigen::Vector3d t = eop.block<3, 1>(0, 3);
   Eigen::Quaterniond q(R);
 
-  // Get euler angles (ZYX convention: Yaw, Pitch, Roll)
-  Eigen::Vector3d euler = R.eulerAngles(2, 1, 0);
+  double roll = 0.0, pitch = 0.0, yaw = 0.0;
 
-  // Convert to degrees
-  euler *= 180.0 / M_PI;
+  if (order == DCMOrder::ZYX) {
+    // ZYX Order (Yaw, Pitch, Roll) - Most common for vehicles
+    roll = std::atan2(R(2, 1), R(2, 2)) * 180.0 / M_PI;
+    pitch = std::asin(-R(2, 0)) * 180.0 / M_PI;
+    yaw = std::atan2(R(1, 0), R(0, 0)) * 180.0 / M_PI;
+  } else if (order == DCMOrder::XYZ) {
+    // XYZ Order (Roll, Pitch, Yaw)
+    pitch = std::asin(R(0, 2)) * 180.0 / M_PI;
+    roll = std::atan2(-R(1, 2), R(2, 2)) * 180.0 / M_PI;
+    yaw = std::atan2(-R(0, 1), R(0, 0)) * 180.0 / M_PI;
+  }
 
   std::cout << "\n============================================================"
             << std::endl;
@@ -174,9 +182,8 @@ void executePrintEOP(const Eigen::Matrix4d &eop,
             << std::endl;
   std::cout << "Leverarm (m)    : [X: " << t.x() << ", Y: " << t.y()
             << ", Z: " << t.z() << "]" << std::endl;
-  std::cout << "Boresight (deg) : [Roll: " << euler.z()
-            << ", Pitch: " << euler.y() << ", Yaw: " << euler.x() << "]"
-            << std::endl;
+  std::cout << "Boresight (deg) : [Roll: " << roll << ", Pitch: " << pitch
+            << ", Yaw: " << yaw << "]" << std::endl;
   std::cout << "Quaternion      : [w: " << q.w() << ", x: " << q.x()
             << ", y: " << q.y() << ", z: " << q.z() << "]" << std::endl;
   std::cout << "Rotation Matrix :\n" << R << std::endl;
@@ -236,7 +243,8 @@ Eigen::Matrix4d executeGetExtrinsics(SensorType type,
     C_out(2, 0) = 0.0;
     C_out(2, 1) = 0.0;
     C_out(2, 2) = 1.0;
-  } else if (type == SensorType::VELODYNE_VLP16 || type == SensorType::VELODYNE_VLS128) {
+  } else if (type == SensorType::VELODYNE_VLP16 ||
+             type == SensorType::VELODYNE_VLS128) {
     // Velodyne calibration was done in RFU, and point clouds are still RFU.
     C_in = Eigen::Matrix3d::Identity();
 

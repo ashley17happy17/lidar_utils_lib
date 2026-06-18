@@ -16,8 +16,8 @@ Eigen::Matrix4d executeTransformEOP(const Eigen::Matrix4d &eop,
                                     const Eigen::Vector3d &out_la,
                                     const Eigen::Vector3d &out_bs);
 
-void executePrintEOP(const Eigen::Matrix4d &eop,
-                     const std::string &sensor_name);
+void executePrintEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name,
+                     DCMOrder order);
 
 Eigen::Matrix4d executeGetExtrinsics(SensorType type,
                                      const Eigen::Vector3d &trans,

@@ -23,6 +23,8 @@ enum class FileFormat { PCD_BINARY, PCD_ASCII, LAS };
 
 enum class CoordinateType { WGS84, TWD97 };
 
+enum class DCMOrder { ZYX, XYZ };
+
 struct LidarContent {
   double timestamp;
   std::string filename;

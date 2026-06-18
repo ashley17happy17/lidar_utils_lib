@@ -41,7 +41,7 @@ public:
    * @brief printEOP: Prints EOP
    */
   static void printEOP(const Eigen::Matrix4d &eop,
-                       const std::string &sensor_name = "LiDAR");
+                       const std::string &sensor_name, DCMOrder order);
 
   /**
    * @brief getExtrinsics: Gets extrinsic

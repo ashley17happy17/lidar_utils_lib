@@ -39,8 +39,8 @@ Eigen::Matrix4d CloudUtils::transformEOP(const Eigen::Matrix4d &eop,
 }
 
 void CloudUtils::printEOP(const Eigen::Matrix4d &eop,
-                          const std::string &sensor_name) {
-  internal::executePrintEOP(eop, sensor_name);
+                          const std::string &sensor_name, DCMOrder order) {
+  internal::executePrintEOP(eop, sensor_name, order);
 }
 
 Eigen::Matrix4d CloudUtils::getExtrinsics(SensorType type,
