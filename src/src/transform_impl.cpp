@@ -5,10 +5,12 @@
 namespace lidar_utils {
 namespace internal {
 
-void executeDirectGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4d &trans) {
-  if (!cloud || cloud->empty())
+void executeDirectGeoreference(CloudType::Ptr &inCloud,
+                               CloudType::Ptr &outCloud,
+                               Eigen::Matrix4d &trans) {
+  if (!inCloud || inCloud->empty())
     return;
-  pcl::transformPointCloud(*cloud, *cloud, trans);
+  pcl::transformPointCloud(*inCloud, *outCloud, trans);
 }
 
 void executeMotionAndDG(CloudType::Ptr &cloud,

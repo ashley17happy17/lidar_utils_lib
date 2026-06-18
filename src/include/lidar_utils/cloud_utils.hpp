@@ -113,7 +113,9 @@ public:
   /**
    * @brief directGeoreference: Direct georeference
    */
-  static void directGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4d &trans);
+  static void directGeoreference(CloudType::Ptr &inCloud,
+                                 CloudType::Ptr &outCloud,
+                                 Eigen::Matrix4d &trans);
 
   /**
    * @brief motionCompensateAndDG: Compensates distortion and transforms to

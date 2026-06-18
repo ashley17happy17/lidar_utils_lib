@@ -126,9 +126,10 @@ void CloudUtils::saveFile(CloudType::Ptr &cloud, std::string &filepath,
  *  transform_impl         *
  ***************************/
 
-void CloudUtils::directGeoreference(CloudType::Ptr &cloud,
+void CloudUtils::directGeoreference(CloudType::Ptr &inCloud,
+                                    CloudType::Ptr &outCloud,
                                     Eigen::Matrix4d &trans) {
-  internal::executeDirectGeoreference(cloud, trans);
+  internal::executeDirectGeoreference(inCloud, outCloud, trans);
 }
 
 void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
