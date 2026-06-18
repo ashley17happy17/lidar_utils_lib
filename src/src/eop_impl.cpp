@@ -184,7 +184,7 @@ void executePrintEOP(const Eigen::Matrix4d &eop,
             << std::endl;
 }
 
-Eigen::Matrix4d executeGetExtrinsics(const std::string &type,
+Eigen::Matrix4d executeGetExtrinsics(SensorType type,
                                      const Eigen::Vector3d &trans,
                                      const Eigen::Vector3d &rot) {
   Eigen::Matrix4d ext = Eigen::Matrix4d::Identity();
@@ -216,7 +216,7 @@ Eigen::Matrix4d executeGetExtrinsics(const std::string &type,
   Eigen::Matrix3d C_in = Eigen::Matrix3d::Identity();
   Eigen::Matrix3d C_out = Eigen::Matrix3d::Identity();
 
-  if (type.find("OUSTER") != std::string::npos) {
+  if (type == SensorType::OUSTER_OS1_128 || type == SensorType::OUSTER_OS1_32) {
     // Ouster calibration was done when data was BRU. Data is now FLU.
     // Convert FLU points back to BRU so the calibration matrix works.
     C_in(0, 0) = -1.0;
@@ -236,7 +236,7 @@ Eigen::Matrix4d executeGetExtrinsics(const std::string &type,
     C_out(2, 0) = 0.0;
     C_out(2, 1) = 0.0;
     C_out(2, 2) = 1.0;
-  } else if (type.find("VELODYNE") != std::string::npos) {
+  } else if (type == SensorType::VELODYNE_VLP16 || type == SensorType::VELODYNE_VLS128) {
     // Velodyne calibration was done in RFU, and point clouds are still RFU.
     C_in = Eigen::Matrix3d::Identity();
 

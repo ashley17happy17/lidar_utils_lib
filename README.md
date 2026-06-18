@@ -55,7 +55,7 @@ This library provides common functions for LiDAR point cloud processing.
     - #### [Get Extrinsics](#get-extrinsics)
         - Intro: Get the transformation matrix between two sensors.
         - Usage: 
-            - `Eigen::Matrix4d getExtrinsics(const std::string &type, const Eigen::Vector3d &trans, const Eigen::Vector3d &rot)`
+            - `Eigen::Matrix4d getExtrinsics(SensorType type, const Eigen::Vector3d &trans, const Eigen::Vector3d &rot)`
         - Parameter:
             - `type`: The type of the sensor.
             - `trans`: The translation between the two sensors.

@@ -46,7 +46,7 @@ public:
   /**
    * @brief getExtrinsics: Gets extrinsic
    */
-  static Eigen::Matrix4d getExtrinsics(const std::string &type,
+  static Eigen::Matrix4d getExtrinsics(SensorType type,
                                        const Eigen::Vector3d &trans,
                                        const Eigen::Vector3d &rot);
 

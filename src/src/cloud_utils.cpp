@@ -43,7 +43,7 @@ void CloudUtils::printEOP(const Eigen::Matrix4d &eop,
   internal::executePrintEOP(eop, sensor_name);
 }
 
-Eigen::Matrix4d CloudUtils::getExtrinsics(const std::string &type,
+Eigen::Matrix4d CloudUtils::getExtrinsics(SensorType type,
                                           const Eigen::Vector3d &trans,
                                           const Eigen::Vector3d &rot) {
   return internal::executeGetExtrinsics(type, trans, rot);

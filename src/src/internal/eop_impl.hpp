@@ -1,4 +1,5 @@
 #pragma once
+#include "lidar_utils/types.hpp"
 #include <Eigen/Dense>
 
 namespace lidar_utils {
@@ -18,7 +19,7 @@ Eigen::Matrix4d executeTransformEOP(const Eigen::Matrix4d &eop,
 void executePrintEOP(const Eigen::Matrix4d &eop,
                      const std::string &sensor_name);
 
-Eigen::Matrix4d executeGetExtrinsics(const std::string &type,
+Eigen::Matrix4d executeGetExtrinsics(SensorType type,
                                      const Eigen::Vector3d &trans,
                                      const Eigen::Vector3d &rot);
 
