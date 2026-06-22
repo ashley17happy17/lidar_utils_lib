@@ -13,8 +13,9 @@ namespace lidar_utils {
 namespace internal {
 
 double executeGICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
-                 Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
-                 const RegistrationConfig &config) {
+                   Eigen::Matrix4d &in_transform,
+                   Eigen::Matrix4d &out_transform,
+                   const RegistrationConfig &config) {
   if (!cloud || cloud->empty() || !map || map->empty()) {
     std::cerr << "[ERROR] Registration Error: cloud is empty." << std::endl;
     return -1.0;
@@ -133,7 +134,7 @@ double executeGICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
     return out_fitness_score;
   } else {
     std::cerr
-        << "[ERROR] Registration Error: failed to align, out_fitness_score: "
+        << "[WARN] Registration WARNING: failed to align, out_fitness_score: "
         << out_fitness_score << ", num_inliers: " << result.num_inliers
         << std::endl;
     return -1.0;
@@ -141,8 +142,8 @@ double executeGICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
 }
 
 double executeNDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
-               Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
-               const RegistrationConfig &config) {
+                  Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
+                  const RegistrationConfig &config) {
   pcl::NormalDistributionsTransform<PointType, PointType> ndt;
 
   ndt.setTransformationEpsilon(config.ndt_transformation_epsilon);
@@ -159,9 +160,13 @@ double executeNDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
 
   out_transform = ndt.getFinalTransformation().cast<double>();
 
-  if (ndt.hasConverged()) {
+  if (ndt.hasConverged() && ndt.getFitnessScore() < config.score_threshold) {
     return ndt.getFitnessScore();
   } else {
+    std::cerr
+        << "[WARN] Registration WARNING: failed to align, out_fitness_score: "
+        << ndt.getFitnessScore() << ", hasConverged: " << ndt.hasConverged()
+        << std::endl;
     return -1.0;
   }
 }
