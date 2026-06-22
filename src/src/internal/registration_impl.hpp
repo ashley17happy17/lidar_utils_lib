@@ -20,13 +20,13 @@ toGicpCloud(const CloudType::Ptr &pcl_cloud) {
   return gicp_cloud;
 }
 
-int executeGICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
+double executeGICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
+                 Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
+                 const RegistrationConfig &config);
+
+double executeNDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
                 Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
                 const RegistrationConfig &config);
-
-int executeNDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
-               Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
-               const RegistrationConfig &config);
 
 } // namespace internal
 } // namespace lidar_utils

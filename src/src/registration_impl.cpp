@@ -12,12 +12,12 @@
 namespace lidar_utils {
 namespace internal {
 
-int executeGICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
-                Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
-                const RegistrationConfig &config) {
+double executeGICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
+                 Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
+                 const RegistrationConfig &config) {
   if (!cloud || cloud->empty() || !map || map->empty()) {
     std::cerr << "[ERROR] Registration Error: cloud is empty." << std::endl;
-    return -1;
+    return -1.0;
   }
 
   // 0. GICP Settings
@@ -130,17 +130,17 @@ int executeGICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
             << d_icp << "ms" << std::endl;
 
   if (result.num_inliers > 100 && out_fitness_score < config.score_threshold) {
-    return 0;
+    return out_fitness_score;
   } else {
     std::cerr
         << "[ERROR] Registration Error: failed to align, out_fitness_score: "
         << out_fitness_score << ", num_inliers: " << result.num_inliers
         << std::endl;
-    return -1;
+    return -1.0;
   }
 }
 
-int executeNDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
+double executeNDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
                Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
                const RegistrationConfig &config) {
   pcl::NormalDistributionsTransform<PointType, PointType> ndt;
@@ -159,7 +159,11 @@ int executeNDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
 
   out_transform = ndt.getFinalTransformation().cast<double>();
 
-  return 0;
+  if (ndt.hasConverged()) {
+    return ndt.getFitnessScore();
+  } else {
+    return -1.0;
+  }
 }
 
 } // namespace internal

@@ -144,14 +144,14 @@ void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
 /***************************
  *  registration_impl      *
  ***************************/
-int CloudUtils::GICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
+double CloudUtils::GICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
                      Eigen::Matrix4d &in_transform,
                      Eigen::Matrix4d &out_transform,
                      const RegistrationConfig &config) {
   return internal::executeGICP(cloud, map, in_transform, out_transform, config);
 }
 
-int CloudUtils::NDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
+double CloudUtils::NDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
                     Eigen::Matrix4d &in_transform,
                     Eigen::Matrix4d &out_transform,
                     const RegistrationConfig &config) {

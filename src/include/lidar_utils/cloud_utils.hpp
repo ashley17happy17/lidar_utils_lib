@@ -130,14 +130,14 @@ public:
   /**
    * @brief GICP: GICP registration
    */
-  static int GICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
+  static double GICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
                   Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
                   const RegistrationConfig &config = RegistrationConfig());
 
   /**
    * @brief NDT: NDT registration
    */
-  static int NDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
+  static double NDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
                  Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
                  const RegistrationConfig &config = RegistrationConfig());
 };
