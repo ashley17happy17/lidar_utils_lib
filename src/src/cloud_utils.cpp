@@ -98,6 +98,15 @@ void CloudUtils::removeNaNCloud(CloudType::Ptr &cloud,
   internal::executeRemoveNaN(cloud, &timestamps);
 }
 
+void CloudUtils::extractGround(const CloudType::Ptr &cloudIn,
+                               CloudType::Ptr &groundCloud,
+                               CloudType::Ptr &nonGroundCloud,
+                               double distanceThreshold, int maxIterations) {
+  CloudType::Ptr cloud = const_cast<CloudType::Ptr &>(cloudIn);
+  internal::executeExtractGround(cloud, groundCloud, nonGroundCloud,
+                                 distanceThreshold, maxIterations);
+}
+
 /***************************
  *  io_impl                *
  ***************************/
@@ -145,16 +154,16 @@ void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
  *  registration_impl      *
  ***************************/
 double CloudUtils::GICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
-                     Eigen::Matrix4d &in_transform,
-                     Eigen::Matrix4d &out_transform,
-                     const RegistrationConfig &config) {
+                        Eigen::Matrix4d &in_transform,
+                        Eigen::Matrix4d &out_transform,
+                        const RegistrationConfig &config) {
   return internal::executeGICP(cloud, map, in_transform, out_transform, config);
 }
 
 double CloudUtils::NDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
-                    Eigen::Matrix4d &in_transform,
-                    Eigen::Matrix4d &out_transform,
-                    const RegistrationConfig &config) {
+                       Eigen::Matrix4d &in_transform,
+                       Eigen::Matrix4d &out_transform,
+                       const RegistrationConfig &config) {
   return internal::executeNDT(cloud, map, in_transform, out_transform, config);
 }
 

@@ -15,6 +15,7 @@ This library provides common functions for LiDAR point cloud processing.
 - [Filter](#filter)
     - [Crop](#crop)
     - [Denoise](#denoise)
+    - [Extract Ground](#extract-ground)
     - [Remove Artifact](#remove-artifact)
     - [Downsample](#downsample)
     - [Remove NaN](#remove-nan)
@@ -70,6 +71,10 @@ This library provides common functions for LiDAR point cloud processing.
         - Intro: Guided Filter for denoising.
         - Usage: 
             - `void denoiseCloud(CloudType::Ptr &cloud, float radius, float epsilon)`
+    - #### [Extract Ground](#extract-ground)
+        - Intro: Extracts ground and non-ground points using RANSAC plane fitting.
+        - Usage: 
+            - `void extractGround(const CloudType::Ptr &cloudIn, CloudType::Ptr &groundCloud, CloudType::Ptr &nonGroundCloud, double distanceThreshold = 0.2, int maxIterations = 100)`
     - #### [Remove Artifact](#remove-artifact)
         - Intro: Removes ghost artifacts.
         - Usage: 
@@ -104,11 +109,11 @@ This library provides common functions for LiDAR point cloud processing.
     - #### [GICP](#gicp)
         - Intro: Iterative Closest Point (ICP) based scan-to-map matching.
         - Usage:
-            - `int GICP(CloudType::Ptr &cloud, CloudType::Ptr &map, Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform, const RegistrationConfig &config)`
+            - `double GICP(CloudType::Ptr &cloud, CloudType::Ptr &map, Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform, const RegistrationConfig &config)`
     - #### [NDT](#ndt)
         - Intro: Iterative Closest Point (ICP) based scan-to-scan matching.
         - Usage:
-            - `int NDT(CloudType::Ptr &cloud, CloudType::Ptr &map, Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform, const RegistrationConfig &config)`
+            - `double NDT(CloudType::Ptr &cloud, CloudType::Ptr &map, Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform, const RegistrationConfig &config)`
 - ### Transform
     - #### [Direct Georeference](#direct-georeference)
         - Intro: Direct Georeference of the point cloud.

@@ -21,5 +21,9 @@ void executeDownsample(CloudType::Ptr &cloud, float voxelSize,
 void executeRemoveNaN(CloudType::Ptr &cloud,
                       std::vector<double> *timestamps = nullptr);
 
+void executeExtractGround(CloudType::Ptr &cloudIn, CloudType::Ptr &groundCloud,
+                          CloudType::Ptr &nonGroundCloud,
+                          double distanceThreshold, int maxIterations);
+
 } // namespace internal
 } // namespace lidar_utils

@@ -14,6 +14,7 @@
 #include <pcl/search/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/extract_indices.h>
 #include <set>
 #include <string>
 #include <vector>
@@ -353,6 +354,43 @@ void executeRemoveNaN(CloudType::Ptr &cloud, std::vector<double> *timestamps) {
 
   *cloud = *temp_cloud;
   *timestamps = std::move(filtered_timestamps);
+}
+
+void executeExtractGround(CloudType::Ptr &cloudIn, CloudType::Ptr &groundCloud,
+                          CloudType::Ptr &nonGroundCloud,
+                          double distanceThreshold, int maxIterations) {
+  if (!cloudIn || cloudIn->empty())
+    return;
+
+  pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+  pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+
+  pcl::SACSegmentation<PointType> seg;
+  seg.setOptimizeCoefficients(true);
+  seg.setModelType(pcl::SACMODEL_PLANE);
+  seg.setMethodType(pcl::SAC_RANSAC);
+  seg.setMaxIterations(maxIterations);
+  seg.setDistanceThreshold(distanceThreshold);
+
+  seg.setInputCloud(cloudIn);
+  seg.segment(*inliers, *coefficients);
+
+  if (inliers->indices.empty()) {
+    std::cerr << "[WARN] Could not estimate a planar model for the given dataset." << std::endl;
+    *nonGroundCloud = *cloudIn;
+    return;
+  }
+
+  // Extract the ground points
+  pcl::ExtractIndices<PointType> extract;
+  extract.setInputCloud(cloudIn);
+  extract.setIndices(inliers);
+  extract.setNegative(false);
+  extract.filter(*groundCloud);
+
+  // Extract the non-ground points
+  extract.setNegative(true);
+  extract.filter(*nonGroundCloud);
 }
 
 } // namespace internal

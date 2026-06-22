@@ -90,6 +90,15 @@ public:
                              std::vector<double> &timestamps);
 
   /**
+   * @brief extractGround: Extracts ground and non-ground points using RANSAC
+   */
+  static void extractGround(const CloudType::Ptr &cloudIn,
+                            CloudType::Ptr &groundCloud,
+                            CloudType::Ptr &nonGroundCloud,
+                            double distanceThreshold = 0.2,
+                            int maxIterations = 100);
+
+  /**
    * @brief readContent: Reads content
    */
   static void readContent(const std::string &path,
@@ -131,14 +140,16 @@ public:
    * @brief GICP: GICP registration
    */
   static double GICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
-                  Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
-                  const RegistrationConfig &config = RegistrationConfig());
+                     Eigen::Matrix4d &in_transform,
+                     Eigen::Matrix4d &out_transform,
+                     const RegistrationConfig &config = RegistrationConfig());
 
   /**
    * @brief NDT: NDT registration
    */
   static double NDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
-                 Eigen::Matrix4d &in_transform, Eigen::Matrix4d &out_transform,
-                 const RegistrationConfig &config = RegistrationConfig());
+                    Eigen::Matrix4d &in_transform,
+                    Eigen::Matrix4d &out_transform,
+                    const RegistrationConfig &config = RegistrationConfig());
 };
 } // namespace lidar_utils
