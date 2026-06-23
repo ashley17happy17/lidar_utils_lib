@@ -33,7 +33,7 @@ public:
   /**
    * @brief transformEOP: Transforms EOP
    */
-  static Eigen::Matrix4d transformEOP(const Eigen::Matrix4d &eop,
+  static Eigen::Matrix4d transformEOP(SensorType type, const Eigen::Matrix4d &eop,
                                       const Eigen::Vector3d &out_la,
                                       const Eigen::Vector3d &out_bs);
 

@@ -32,10 +32,10 @@ Eigen::Matrix4d CloudUtils::eopCalibStatic(
   return internal::executeEOPCalibStatic(absolute_extrinsics);
 }
 
-Eigen::Matrix4d CloudUtils::transformEOP(const Eigen::Matrix4d &eop,
+Eigen::Matrix4d CloudUtils::transformEOP(SensorType type, const Eigen::Matrix4d &eop,
                                          const Eigen::Vector3d &out_la,
                                          const Eigen::Vector3d &out_bs) {
-  return internal::executeTransformEOP(eop, out_la, out_bs);
+  return internal::executeTransformEOP(type, eop, out_la, out_bs);
 }
 
 void CloudUtils::printEOP(const Eigen::Matrix4d &eop,
