@@ -12,9 +12,12 @@ Eigen::Matrix4d executeEOPCalibDynamic(
 Eigen::Matrix4d
 executeEOPCalibStatic(const std::vector<Eigen::Matrix4d> &absolute_extrinsics);
 
-Eigen::Matrix4d executeTransformEOP(SensorType type, const Eigen::Matrix4d &eop,
+Eigen::Matrix4d executeTransformEOP(const Eigen::Matrix4d &eop,
                                     const Eigen::Vector3d &out_la,
                                     const Eigen::Vector3d &out_bs);
+
+Eigen::Matrix4d executeGetRawExtrinsicsFromFLU(SensorType type, 
+                                               const Eigen::Matrix4d &flu_ext);
 
 void executePrintEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name,
                      DCMOrder order);

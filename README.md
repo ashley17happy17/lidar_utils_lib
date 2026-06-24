@@ -10,6 +10,7 @@ This library provides common functions for LiDAR point cloud processing.
     - [EOP Calibration Dynamic](#eop-calibration-dynamic)
     - [EOP Calibration Static](#eop-calibration-static)
     - [Transform EOP](#transform-eop)
+    - [Get Raw Extrinsics From FLU](#get-raw-extrinsics-from-flu)
     - [Print EOP](#print-eop)
     - [Get Extrinsics](#get-extrinsics)
 - [Filter](#filter)
@@ -49,10 +50,14 @@ This library provides common functions for LiDAR point cloud processing.
         - Intro: Transform an EOP calibration matrix by an external offset (Leverarm in meters, Boresight in degrees). Useful for shifting the base frame (e.g., GNSS -> LiDAR to VehicleCenter -> LiDAR).
         - Usage:
             - `Eigen::Matrix4d transformEOP(const Eigen::Matrix4d &eop, const Eigen::Vector3d &out_la, const Eigen::Vector3d &out_bs)`
+    - #### [Get Raw Extrinsics From FLU](#get-raw-extrinsics-from-flu)
+        - Intro: Converts a fully transformed FLU Extrinsics matrix back into the raw `params.yaml` format using sensor-specific coordinate mappings (e.g. Ouster BRU, Velodyne RFU).
+        - Usage:
+            - `Eigen::Matrix4d getRawExtrinsicsFromFLU(SensorType type, const Eigen::Matrix4d &flu_ext)`
     - #### [Print EOP](#print-eop)
         - Intro: Print the EOP parameters (Leverarm, Boresight, Quaternion, Rotation Matrix) cleanly to the console.
         - Usage:
-            - `void printEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name = "LiDAR")`        
+            - `void printEOP(const Eigen::Matrix4d &eop, const std::string &sensor_name, DCMOrder order = DCMOrder::ZYX)`
     - #### [Get Extrinsics](#get-extrinsics)
         - Intro: Get the transformation matrix between two sensors.
         - Usage: 
@@ -118,7 +123,7 @@ This library provides common functions for LiDAR point cloud processing.
     - #### [Direct Georeference](#direct-georeference)
         - Intro: Direct Georeference of the point cloud.
         - Usage:
-            - `void directGeoreference(CloudType::Ptr &cloud, Eigen::Matrix4d &trans)`
+            - `void directGeoreference(CloudType::Ptr &inCloud, CloudType::Ptr &outCloud, Eigen::Matrix4d &trans)`
     - #### [Motion Compensate And DG](#motion-compensate-and-dg)
         - Intro: Motion compensation and direct georeferencing of the point cloud.
         - Usage:

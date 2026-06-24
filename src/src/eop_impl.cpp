@@ -5,6 +5,62 @@
 
 namespace lidar_utils {
 namespace internal {
+
+static void getCoordinateMapping(SensorType type, Eigen::Matrix3d &C_in, Eigen::Matrix3d &C_out) {
+  C_in = Eigen::Matrix3d::Identity();
+  C_out = Eigen::Matrix3d::Identity();
+
+  if (type == SensorType::OUSTER_OS1_128 || type == SensorType::OUSTER_OS1_32) {
+    // ------------------------------------------------------------------------
+    // R_final = C_out * R_calib_to_gnss * C_in;
+    //             ^           ^            ^
+    //  FLU<-RFU(ROS<-Veh)   RFU<-BRU(Veh<-LiDAR)  BRU<-FLU(SensorFm<-LiDARFm)
+    // ------------------------------------------------------------------------
+
+    // Ouster calibration was done when data was BRU. Data is now FLU.
+    // Convert FLU points back to BRU so the calibration matrix works.
+    C_in(0, 0) = -1.0;
+    C_in(1, 1) = -1.0;
+    C_in(2, 2) = 1.0;
+
+    // Output is exactly BRU (180 deg opposite of FLU).
+    // We map BRU to the vehicle's FLU frame by rotating 180 degrees in XY.
+    // X_flu (Forward) = Y_bru (Wait, mapping from the pre-rotated frame)
+    // Mathematically, we flip the X and Y axes of the previous C_out.
+    C_out(0, 0) = 0.0;
+    C_out(0, 1) = 1.0;
+    C_out(0, 2) = 0.0;
+    C_out(1, 0) = -1.0;
+    C_out(1, 1) = 0.0;
+    C_out(1, 2) = 0.0;
+    C_out(2, 0) = 0.0;
+    C_out(2, 1) = 0.0;
+    C_out(2, 2) = 1.0;
+  } else if (type == SensorType::VELODYNE_VLP16 ||
+             type == SensorType::VELODYNE_VLS128) {
+    // ------------------------------------------------------------------------
+    // R_final = C_out * R_calib_to_gnss * C_in;
+    //             ^           ^            ^
+    //  FLU<-RFU(ROS<-Veh)  RFU<-RFU(Veh<-LiDAR)  Identity
+    // ------------------------------------------------------------------------
+
+    // Velodyne calibration was done in RFU, and point clouds are still RFU.
+    C_in = Eigen::Matrix3d::Identity();
+
+    // Output is perfectly aligned RFU. We must map RFU to the vehicle's FLU
+    // frame. X_flu (Forward) = Y_rfu Y_flu (Left) = -X_rfu Z_flu (Up) = Z_rfu
+    C_out(0, 0) = 0.0;
+    C_out(0, 1) = 1.0;
+    C_out(0, 2) = 0.0;
+    C_out(1, 0) = -1.0;
+    C_out(1, 1) = 0.0;
+    C_out(1, 2) = 0.0;
+    C_out(2, 0) = 0.0;
+    C_out(2, 1) = 0.0;
+    C_out(2, 2) = 1.0;
+  }
+}
+
 Eigen::Matrix4d executeEOPCalibDynamic(
     const std::vector<Eigen::Matrix4d> &gps_relative_motions,
     const std::vector<Eigen::Matrix4d> &lidar_relative_motions) {
@@ -129,7 +185,7 @@ executeEOPCalibStatic(const std::vector<Eigen::Matrix4d> &absolute_extrinsics) {
   return eop_calib;
 }
 
-Eigen::Matrix4d executeTransformEOP(SensorType type, const Eigen::Matrix4d &eop,
+Eigen::Matrix4d executeTransformEOP(const Eigen::Matrix4d &eop,
                                     const Eigen::Vector3d &out_la,
                                     const Eigen::Vector3d &out_bs) {
   // Build Transform from out_la and out_bs
@@ -151,60 +207,25 @@ Eigen::Matrix4d executeTransformEOP(SensorType type, const Eigen::Matrix4d &eop,
 
   // Assuming eop is T_{GNSS -> LiDAR} and offset is T_{Vehicle -> GNSS}
   // Then T_{Vehicle -> LiDAR} = T_{Vehicle -> GNSS} * T_{GNSS -> LiDAR}
-  Eigen::Matrix4d eop_transform = T_offset * eop;
+  // Or if offset is just an arbitrary base frame shift.
+  return T_offset * eop;
+}
 
-  // === Reverse Transform to match config/params.yaml ===
-  Eigen::Matrix4d C_in = Eigen::Matrix4d::Identity();
-  Eigen::Matrix4d C_out = Eigen::Matrix4d::Identity();
-
-  if (type == SensorType::OUSTER_OS1_128 || type == SensorType::OUSTER_OS1_32) {
-    // ------------------------------------------------------------------------
-    // R_final = C_out * R_calib_to_gnss * C_in;
-    //             ^           ^            ^
-    //  FLU<-RFU(ROS<-Veh)   RFU<-BRU(Veh<-LiDAR)  BRU<-FLU(SensorFm<-LiDARFm)
-    // ------------------------------------------------------------------------
-    C_in(0, 0) = -1.0;
-    C_in(1, 1) = -1.0;
-    C_in(2, 2) = 1.0;
-
-    C_out(0, 0) = 0.0;
-    C_out(0, 1) = 1.0;
-    C_out(0, 2) = 0.0;
-    C_out(1, 0) = -1.0;
-    C_out(1, 1) = 0.0;
-    C_out(1, 2) = 0.0;
-    C_out(2, 0) = 0.0;
-    C_out(2, 1) = 0.0;
-    C_out(2, 2) = 1.0;
-  } else if (type == SensorType::VELODYNE_VLP16 ||
-             type == SensorType::VELODYNE_VLS128) {
-    // ------------------------------------------------------------------------
-    // R_final = C_out * R_calib_to_gnss * C_in;
-    //             ^           ^            ^
-    //  FLU<-RFU(ROS<-Veh)  RFU<-RFU(Veh<-LiDAR)  Identity
-    // ------------------------------------------------------------------------
-    C_out(0, 0) = 0.0;
-    C_out(0, 1) = 1.0;
-    C_out(0, 2) = 0.0;
-    C_out(1, 0) = -1.0;
-    C_out(1, 1) = 0.0;
-    C_out(1, 2) = 0.0;
-    C_out(2, 0) = 0.0;
-    C_out(2, 1) = 0.0;
-    C_out(2, 2) = 1.0;
-  }
+Eigen::Matrix4d executeGetRawExtrinsicsFromFLU(SensorType type, 
+                                               const Eigen::Matrix4d &flu_ext) {
+  Eigen::Matrix3d C_in, C_out;
+  getCoordinateMapping(type, C_in, C_out);
 
   Eigen::Matrix4d eop_raw = Eigen::Matrix4d::Identity();
-  eop_raw.block<3, 3>(0, 0) = C_out.block<3, 3>(0, 0).transpose() *
-                              eop_transform.block<3, 3>(0, 0) *
-                              C_in.block<3, 3>(0, 0).transpose();
+  eop_raw.block<3, 3>(0, 0) = C_out.transpose() *
+                              flu_ext.block<3, 3>(0, 0) *
+                              C_in.transpose();
 
-  // Translation in getExtrinsics is NOT multiplied by C_out, it's just FRD ->
-  // FLU mapping (S)
-  Eigen::Matrix3d S_trans = Eigen::Matrix3d::Identity();
-  S_trans(1, 1) = -1.0;
-  S_trans(2, 2) = -1.0;
-  eop_raw.block<3, 1>(0, 3) = S_trans * eop_transform.block<3, 1>(0, 3);
+  // Translation in getExtrinsics is NOT multiplied by C_out, it's just FRD -> FLU mapping.
+  // We simply reverse the flipping of Y and Z to map FLU back to FRD.
+  eop_raw(0, 3) = flu_ext(0, 3);   // X_frd = X_flu
+  eop_raw(1, 3) = -flu_ext(1, 3);  // Y_frd = -Y_flu
+  eop_raw(2, 3) = -flu_ext(2, 3);  // Z_frd = -Z_flu
 
   return eop_raw;
 }
@@ -274,57 +295,8 @@ Eigen::Matrix4d executeGetExtrinsics(SensorType type,
   Eigen::Vector3d t_gnss_flu(trans[0], -trans[1], -trans[2]);
 
   // 3. Handle Sensor Native Frame -> Calibration Frame differences
-  Eigen::Matrix3d C_in = Eigen::Matrix3d::Identity();
-  Eigen::Matrix3d C_out = Eigen::Matrix3d::Identity();
-
-  if (type == SensorType::OUSTER_OS1_128 || type == SensorType::OUSTER_OS1_32) {
-    // ------------------------------------------------------------------------
-    // R_final = C_out * R_calib_to_gnss * C_in;
-    //             ^           ^            ^
-    //  FLU<-RFU(ROS<-Veh)   RFU<-BRU(Veh<-LiDAR)  BRU<-FLU(SensorFm<-LiDARFm)
-    // ------------------------------------------------------------------------
-
-    // Ouster calibration was done when data was BRU. Data is now FLU.
-    // Convert FLU points back to BRU so the calibration matrix works. (TODO)
-    C_in(0, 0) = -1.0;
-    C_in(1, 1) = -1.0;
-    C_in(2, 2) = 1.0;
-
-    // Output is exactly BRU (180 deg opposite of FLU).
-    // We map BRU to the vehicle's FLU frame by rotating 180 degrees in XY.
-    // X_flu (Forward) = Y_bru, and flip the X and Y axes of the previous C_out.
-    C_out(0, 0) = 0.0;
-    C_out(0, 1) = 1.0;
-    C_out(0, 2) = 0.0;
-    C_out(1, 0) = -1.0;
-    C_out(1, 1) = 0.0;
-    C_out(1, 2) = 0.0;
-    C_out(2, 0) = 0.0;
-    C_out(2, 1) = 0.0;
-    C_out(2, 2) = 1.0;
-  } else if (type == SensorType::VELODYNE_VLP16 ||
-             type == SensorType::VELODYNE_VLS128) {
-    // ------------------------------------------------------------------------
-    // R_final = C_out * R_calib_to_gnss * C_in;
-    //             ^           ^            ^
-    //  FLU<-RFU(ROS<-Veh)  RFU<-RFU(Veh<-LiDAR)  Identity
-    // ------------------------------------------------------------------------
-
-    // Velodyne calibration was done in RFU, and point clouds are still RFU.
-    C_in = Eigen::Matrix3d::Identity();
-
-    // Output is perfectly aligned RFU. We must map RFU to the vehicle's FLU
-    // frame. X_flu (Forward) = Y_rfu, Y_flu (Left) = -X_rfu, Z_flu (Up) = Z_rfu
-    C_out(0, 0) = 0.0;
-    C_out(0, 1) = 1.0;
-    C_out(0, 2) = 0.0;
-    C_out(1, 0) = -1.0;
-    C_out(1, 1) = 0.0;
-    C_out(1, 2) = 0.0;
-    C_out(2, 0) = 0.0;
-    C_out(2, 1) = 0.0;
-    C_out(2, 2) = 1.0;
-  }
+  Eigen::Matrix3d C_in, C_out;
+  getCoordinateMapping(type, C_in, C_out);
 
   // 4. Combine transformations
   Eigen::Matrix3d R_final = C_out * R_calib_to_gnss * C_in;
