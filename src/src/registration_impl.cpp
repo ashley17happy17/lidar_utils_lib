@@ -133,9 +133,9 @@ double executeGICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
   if (result.num_inliers > 100 && out_fitness_score < config.score_threshold) {
     return out_fitness_score;
   } else {
-    std::cerr << "[WARN] ICP Failure: out_fitness_score: " << out_fitness_score
-              << ", num_inliers: " << result.num_inliers << std::endl;
-    return -1.0;
+    // std::cerr << ("[WARN] ICP Failure: out_fitness_score: " +
+    //               std::to_string(out_fitness_score) + ", num_inliers: " +
+    //               std::to_string(result.num_inliers) + "\n");
   }
 }
 
@@ -161,9 +161,9 @@ double executeNDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
   if (ndt.hasConverged() && ndt.getFitnessScore() < config.score_threshold) {
     return ndt.getFitnessScore();
   } else {
-    std::cerr << "[WARN] NDT Failure: out_fitness_score: "
-              << ndt.getFitnessScore()
-              << ", hasConverged: " << ndt.hasConverged() << std::endl;
+    // std::cerr << ("[WARN] NDT Failure: out_fitness_score: " +
+    //               std::to_string(ndt.getFitnessScore()) + ", hasConverged: "
+    //               + std::to_string(ndt.hasConverged()) + "\n");
     return -1.0;
   }
 }
