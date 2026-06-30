@@ -133,10 +133,8 @@ double executeGICP(CloudType::Ptr &cloud, CloudType::Ptr &map,
   if (result.num_inliers > 100 && out_fitness_score < config.score_threshold) {
     return out_fitness_score;
   } else {
-    std::cerr << "[WARN] ICP Failure: out_fitness_score:
-                 "
-              << out_fitness_score << ", num_inliers: " << result.num_inliers
-              << std::endl;
+    std::cerr << "[WARN] ICP Failure: out_fitness_score: " << out_fitness_score
+              << ", num_inliers: " << result.num_inliers << std::endl;
     return -1.0;
   }
 }
@@ -163,8 +161,7 @@ double executeNDT(CloudType::Ptr &cloud, CloudType::Ptr &map,
   if (ndt.hasConverged() && ndt.getFitnessScore() < config.score_threshold) {
     return ndt.getFitnessScore();
   } else {
-    std::cerr << "[WARN] NDT Failure: out_fitness_score:
-                 "
+    std::cerr << "[WARN] NDT Failure: out_fitness_score: "
               << ndt.getFitnessScore()
               << ", hasConverged: " << ndt.hasConverged() << std::endl;
     return -1.0;
