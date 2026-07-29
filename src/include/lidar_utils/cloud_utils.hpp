@@ -143,6 +143,20 @@ public:
                                     bool motionEnable);
 
   /**
+   * @brief motionCompensate: Deskews a scan using raw IMU gyro (rotation) and
+   * GNSS position (translation), interpolated per point to the scan-start
+   * frame. Gyro must already be axis-aligned to the LiDAR frame. Pass the
+   * vehicle-start orientation as R_vehicle_from_world to rotate the GNSS
+   * world-frame motion into the vehicle frame (identity if already aligned).
+   */
+  static void
+  motionCompensate(CloudType::Ptr &cloud, const std::vector<double> &timestamps,
+                   const std::vector<ImuSample> &imu,
+                   const std::vector<GnssSample> &gnss,
+                   const Eigen::Matrix3d &R_vehicle_from_world =
+                       Eigen::Matrix3d::Identity());
+
+  /**
    * @brief GICP: GICP registration
    */
   static double GICP(CloudType::Ptr &cloud, CloudType::Ptr &map,

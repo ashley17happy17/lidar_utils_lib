@@ -155,6 +155,15 @@ void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
                                motionEnable);
 }
 
+void CloudUtils::motionCompensate(CloudType::Ptr &cloud,
+                                  const std::vector<double> &timestamps,
+                                  const std::vector<ImuSample> &imu,
+                                  const std::vector<GnssSample> &gnss,
+                                  const Eigen::Matrix3d &R_vehicle_from_world) {
+  internal::executeMotionComensation(cloud, timestamps, imu, gnss,
+                                     R_vehicle_from_world);
+}
+
 /***************************
  *  registration_impl      *
  ***************************/

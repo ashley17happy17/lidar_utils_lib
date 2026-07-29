@@ -1,5 +1,7 @@
 #include "internal/transform_impl.hpp"
 #include "lidar_utils/types.hpp"
+#include <algorithm>
+#include <cmath>
 #include <pcl/common/transforms.h>
 
 namespace lidar_utils {
@@ -83,6 +85,256 @@ void executeMotionAndDG(CloudType::Ptr &cloud,
     cloud->points[i].x = pt_transformed.x();
     cloud->points[i].y = pt_transformed.y();
     cloud->points[i].z = pt_transformed.z();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Integrate the gyro into cumulative rotation over the scan window.
+// Reference: imageProjection.cpp::imuDeskewInfo()
+// ---------------------------------------------------------------------------
+ImuRotationInfo integrateImuGyro(const std::vector<ImuSample> &imu,
+                                 double timeScanCur, double timeScanEnd) {
+  ImuRotationInfo info;
+  if (imu.empty())
+    return info;
+
+  info.time.reserve(imu.size());
+  info.rotX.reserve(imu.size());
+  info.rotY.reserve(imu.size());
+  info.rotZ.reserve(imu.size());
+
+  int ptr = 0;
+  for (const ImuSample &s : imu) {
+    // Discard samples clearly before the scan (0.01 s guard, as in LIO-SAM).
+    if (s.time < timeScanCur - 0.01)
+      continue;
+    // Stop shortly after the scan ends.
+    if (s.time > timeScanEnd + 0.01)
+      break;
+
+    if (ptr == 0) {
+      // First in-window sample anchors the integration at zero rotation.
+      info.time.push_back(s.time);
+      info.rotX.push_back(0.0);
+      info.rotY.push_back(0.0);
+      info.rotZ.push_back(0.0);
+      ++ptr;
+      continue;
+    }
+
+    // Rectangular integration of angular velocity: rot += omega * dt.
+    double timeDiff = s.time - info.time[ptr - 1];
+    info.rotX.push_back(info.rotX[ptr - 1] + s.gyroX * timeDiff);
+    info.rotY.push_back(info.rotY[ptr - 1] + s.gyroY * timeDiff);
+    info.rotZ.push_back(info.rotZ[ptr - 1] + s.gyroZ * timeDiff);
+    info.time.push_back(s.time);
+    ++ptr;
+  }
+
+  info.available = ptr > 1;
+  return info;
+}
+
+// ---------------------------------------------------------------------------
+// Turn GNSS positions into the scan's relative translation in vehicle frame.
+// Reference: imageProjection.cpp::odomDeskewInfo()
+// ---------------------------------------------------------------------------
+GnssMotionInfo transformGnssToVehicle(const std::vector<GnssSample> &gnss,
+                                      double timeScanCur, double timeScanEnd,
+                                      const Eigen::Matrix3d &R_vehicle_from_world) {
+  GnssMotionInfo info;
+  info.timeScanCur = timeScanCur;
+  info.timeScanEnd = timeScanEnd;
+  if (gnss.size() < 2 || timeScanEnd <= timeScanCur)
+    return info;
+
+  // Linearly interpolate the GNSS position at an arbitrary time. Returns false
+  // if the requested time is outside the trajectory (beyond a 0.01 s guard),
+  // so we never fabricate motion where no data exists.
+  auto interpAt = [&](double t, Eigen::Vector3d &out) -> bool {
+    if (t <= gnss.front().time) {
+      out = Eigen::Vector3d(gnss.front().x, gnss.front().y, gnss.front().z);
+      return t >= gnss.front().time - 0.01;
+    }
+    if (t >= gnss.back().time) {
+      out = Eigen::Vector3d(gnss.back().x, gnss.back().y, gnss.back().z);
+      return t <= gnss.back().time + 0.01;
+    }
+    for (size_t i = 1; i < gnss.size(); ++i) {
+      if (gnss[i].time >= t) {
+        const GnssSample &a = gnss[i - 1];
+        const GnssSample &b = gnss[i];
+        double denom = b.time - a.time;
+        double r = denom > 0.0 ? (t - a.time) / denom : 0.0;
+        out = Eigen::Vector3d(a.x + (b.x - a.x) * r, a.y + (b.y - a.y) * r,
+                              a.z + (b.z - a.z) * r);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  Eigen::Vector3d pBegin, pEnd;
+  if (!interpAt(timeScanCur, pBegin) || !interpAt(timeScanEnd, pEnd))
+    return info;
+
+  // Relative movement over the scan, rotated from world into the vehicle
+  // (scan-start) frame so it lives in the same frame as the LiDAR points.
+  info.transIncre = R_vehicle_from_world * (pEnd - pBegin);
+  info.available = true;
+  return info;
+}
+
+// ---------------------------------------------------------------------------
+// Interpolate the integrated gyro rotation at an absolute point time.
+// Reference: imageProjection.cpp::findRotation()
+// ---------------------------------------------------------------------------
+static void findRotation(const ImuRotationInfo &imuInfo, double pointTime,
+                         double &rotXCur, double &rotYCur, double &rotZCur) {
+  rotXCur = 0.0;
+  rotYCur = 0.0;
+  rotZCur = 0.0;
+
+  const int n = static_cast<int>(imuInfo.time.size());
+  int front = 0;
+  while (front < n) {
+    if (pointTime < imuInfo.time[front])
+      break;
+    ++front;
+  }
+
+  if (front == 0 || front == n) {
+    // Before the first / after the last sample: clamp to the nearest end.
+    int idx = std::min(front, n - 1);
+    rotXCur = imuInfo.rotX[idx];
+    rotYCur = imuInfo.rotY[idx];
+    rotZCur = imuInfo.rotZ[idx];
+  } else {
+    // Interpolate between the bracketing samples.
+    int back = front - 1;
+    double denom = imuInfo.time[front] - imuInfo.time[back];
+    double ratioFront = denom > 0.0 ? (pointTime - imuInfo.time[back]) / denom : 0.0;
+    double ratioBack = 1.0 - ratioFront;
+    rotXCur = imuInfo.rotX[front] * ratioFront + imuInfo.rotX[back] * ratioBack;
+    rotYCur = imuInfo.rotY[front] * ratioFront + imuInfo.rotY[back] * ratioBack;
+    rotZCur = imuInfo.rotZ[front] * ratioFront + imuInfo.rotZ[back] * ratioBack;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Interpolate the GNSS relative translation at a scan-relative time.
+// Reference: imageProjection.cpp::findPosition()
+// ---------------------------------------------------------------------------
+static void findPosition(const GnssMotionInfo &gnssInfo, double relTime,
+                         double &posXCur, double &posYCur, double &posZCur) {
+  posXCur = 0.0;
+  posYCur = 0.0;
+  posZCur = 0.0;
+  if (!gnssInfo.available)
+    return;
+
+  double duration = gnssInfo.timeScanEnd - gnssInfo.timeScanCur;
+  if (duration <= 0.0)
+    return;
+
+  double ratio = relTime / duration;
+  posXCur = ratio * gnssInfo.transIncre.x();
+  posYCur = ratio * gnssInfo.transIncre.y();
+  posZCur = ratio * gnssInfo.transIncre.z();
+}
+
+// Build a 4x4 transform from ZYX Euler angles (matching executeMotionAndDG's
+// convention) and a translation.
+static Eigen::Matrix4d makeTransform(double rotX, double rotY, double rotZ,
+                                     double tx, double ty, double tz) {
+  Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+  T.block<3, 3>(0, 0) =
+      (Eigen::AngleAxisd(rotZ, Eigen::Vector3d::UnitZ()) *
+       Eigen::AngleAxisd(rotY, Eigen::Vector3d::UnitY()) *
+       Eigen::AngleAxisd(rotX, Eigen::Vector3d::UnitX()))
+          .matrix();
+  T(0, 3) = tx;
+  T(1, 3) = ty;
+  T(2, 3) = tz;
+  return T;
+}
+
+// ---------------------------------------------------------------------------
+// Deskew a cloud: bring every point into the scan-start frame.
+// Reference: imageProjection.cpp::deskewPoint()
+// ---------------------------------------------------------------------------
+void executeMotionComensation(CloudType::Ptr &cloud,
+                              const std::vector<double> &timestamps,
+                              const std::vector<ImuSample> &imu,
+                              const std::vector<GnssSample> &gnss,
+                              const Eigen::Matrix3d &R_vehicle_from_world) {
+  if (!cloud || cloud->empty())
+    return;
+
+  const size_t num_points = cloud->size();
+  const bool has_time = (timestamps.size() == num_points);
+  if (!has_time)
+    // Without per-point timestamps there is nothing to deskew against.
+    return;
+
+  // Scan time span. Points are not assumed ordered, so scan for min/max.
+  double timeScanCur = timestamps.front();
+  double timeScanEnd = timestamps.front();
+  for (double t : timestamps) {
+    timeScanCur = std::min(timeScanCur, t);
+    timeScanEnd = std::max(timeScanEnd, t);
+  }
+
+  // 1. Integrate the gyro into cumulative rotation (imuDeskewInfo).
+  ImuRotationInfo imuInfo = integrateImuGyro(imu, timeScanCur, timeScanEnd);
+
+  // 2. Turn GNSS positions into a scan-relative translation (odomDeskewInfo).
+  GnssMotionInfo gnssInfo = transformGnssToVehicle(gnss, timeScanCur,
+                                                   timeScanEnd,
+                                                   R_vehicle_from_world);
+
+  // If neither source is usable, leave the cloud untouched.
+  if (!imuInfo.available && !gnssInfo.available)
+    return;
+
+  // Reference = pose at the very start of the scan (relTime = 0). Every point
+  // is re-based onto this frame, so the deskewed cloud is defined at the
+  // scan-start pose (ready for subsequent direct georeferencing).
+  double rot0X = 0.0, rot0Y = 0.0, rot0Z = 0.0;
+  if (imuInfo.available)
+    findRotation(imuInfo, timeScanCur, rot0X, rot0Y, rot0Z);
+  const Eigen::Matrix4d transStartInverse =
+      makeTransform(rot0X, rot0Y, rot0Z, 0.0, 0.0, 0.0).inverse();
+
+  // Point-by-point Interpolation
+  for (size_t i = 0; i < num_points; ++i) {
+    const double pointTime = timestamps[i];
+    const double relTime = pointTime - timeScanCur;
+
+    // Rotation Matrix Preparation (integrated gyro, interpolated to pointTime).
+    double rotXCur = 0.0, rotYCur = 0.0, rotZCur = 0.0;
+    if (imuInfo.available)
+      findRotation(imuInfo, pointTime, rotXCur, rotYCur, rotZCur);
+
+    // Translation Vector Preparation (GNSS relative motion, ratio * incre).
+    double posXCur = 0.0, posYCur = 0.0, posZCur = 0.0;
+    if (gnssInfo.available)
+      findPosition(gnssInfo, relTime, posXCur, posYCur, posZCur);
+
+    // Form the Transformation Matrix (this point's pose within the scan),
+    // then express it relative to the scan-start pose.
+    const Eigen::Matrix4d transFinal =
+        makeTransform(rotXCur, rotYCur, rotZCur, posXCur, posYCur, posZCur);
+    const Eigen::Matrix4d transBt = transStartInverse * transFinal;
+
+    // Direct Gereferencing (deskew this point into the scan-start frame).
+    Eigen::Vector3d pt(cloud->points[i].x, cloud->points[i].y,
+                       cloud->points[i].z);
+    Eigen::Vector3d ptd =
+        transBt.block<3, 3>(0, 0) * pt + transBt.block<3, 1>(0, 3);
+    cloud->points[i].x = ptd.x();
+    cloud->points[i].y = ptd.y();
+    cloud->points[i].z = ptd.z();
   }
 }
 

@@ -30,6 +30,25 @@ struct LidarContent {
   std::string filename;
 };
 
+// A single IMU sample for motion compensation. The gyro is assumed to be
+// ALREADY rotated into the LiDAR frame with matching axes, so no axis
+// correction is applied downstream. Angular velocity is location independent,
+// so no lever arm is needed for rotation.
+struct ImuSample {
+  double time = 0.0;  // absolute timestamp [s]
+  double gyroX = 0.0; // angular velocity about LiDAR X [rad/s]
+  double gyroY = 0.0; // angular velocity about LiDAR Y [rad/s]
+  double gyroZ = 0.0; // angular velocity about LiDAR Z [rad/s]
+};
+
+// A single GNSS position sample in a local/world frame (e.g. ENU / TWD97).
+struct GnssSample {
+  double time = 0.0; // absolute timestamp [s]
+  double x = 0.0;
+  double y = 0.0;
+  double z = 0.0;
+};
+
 struct PointXYZIT {
   PCL_ADD_POINT4D;   // x, y, z, intensity, ring
   PCL_ADD_INTENSITY; // Add ring index
