@@ -30,15 +30,29 @@ struct LidarContent {
   std::string filename;
 };
 
-// A single IMU sample for motion compensation. The gyro is assumed to be
-// ALREADY rotated into the LiDAR frame with matching axes, so no axis
-// correction is applied downstream. Angular velocity is location independent,
-// so no lever arm is needed for rotation.
+// Motion-compensation (deskew) method. Rotation always comes from the IMU
+// gyro; only the TRANSLATION source differs between methods.
+enum class MotionMethod {
+  GNSS_TRANS,    // translation from GNSS position delta   + gyro rotation
+  ODOM_TRANS,    // translation from odometer velocity     + gyro rotation
+  IMU_ACC_TRANS  // translation from IMU accel (double-integrated, seeded) + gyro
+};
+
+// A single IMU sample for motion compensation. The gyro (and accelerometer,
+// when used) is assumed to be ALREADY rotated into the vehicle/LiDAR frame with
+// matching axes, so no axis correction is applied downstream. Angular velocity
+// is location independent, so no lever arm is needed for rotation.
 struct ImuSample {
   double time = 0.0;  // absolute timestamp [s]
-  double gyroX = 0.0; // angular velocity about LiDAR X [rad/s]
-  double gyroY = 0.0; // angular velocity about LiDAR Y [rad/s]
-  double gyroZ = 0.0; // angular velocity about LiDAR Z [rad/s]
+  double gyroX = 0.0; // angular velocity about X [rad/s]
+  double gyroY = 0.0; // angular velocity about Y [rad/s]
+  double gyroZ = 0.0; // angular velocity about Z [rad/s]
+  // Linear ("free") acceleration, gravity-removed, in the vehicle frame
+  // [m/s^2]. Only used by MotionMethod::IMU_ACC_TRANS. Log the MTi-670 "free
+  // acceleration" output here (already gravity-compensated).
+  double accX = 0.0;
+  double accY = 0.0;
+  double accZ = 0.0;
 };
 
 // A single GNSS position sample in a local/world frame (e.g. ENU / TWD97).
@@ -47,6 +61,15 @@ struct GnssSample {
   double x = 0.0;
   double y = 0.0;
   double z = 0.0;
+};
+
+// A single odometer sample: linear velocity in the vehicle (body/FLU) frame
+// [m/s]. For a forward-only wheel odometer, set vy = vz = 0.
+struct OdomSample {
+  double time = 0.0; // absolute timestamp [s]
+  double vx = 0.0;
+  double vy = 0.0;
+  double vz = 0.0;
 };
 
 struct PointXYZIT {

@@ -143,18 +143,58 @@ public:
                                     bool motionEnable);
 
   /**
-   * @brief motionCompensate: Deskews a scan using raw IMU gyro (rotation) and
-   * GNSS position (translation), interpolated per point to the scan-start
-   * frame. Gyro must already be axis-aligned to the LiDAR frame. Pass the
-   * vehicle-start orientation as R_vehicle_from_world to rotate the GNSS
-   * world-frame motion into the vehicle frame (identity if already aligned).
+   * @brief motionCompensateAndDG (pluggable): deskews a scan (gyro rotation +
+   * chosen translation source) AND georeferences it into the world frame in a
+   * single call — the pluggable drop-in for the pose-interpolation overload
+   * above. Pass the vehicle->world pose at scan start (e.g. gnss.getTransform());
+   * the world->vehicle rotation that GNSS_TRANS needs is derived from it
+   * internally, so no R is exposed and no separate directGeoreference is needed.
+   * For IMU_ACC_TRANS, if @p v0_vehicle is left zero and @p gnss is provided, the
+   * scan-start velocity seed is estimated from the GNSS trajectory. Set
+   * @p motionEnable = false to skip deskew (georeference only).
+   */
+  static void motionCompensateAndDG(
+      CloudType::Ptr &cloud, const std::vector<double> &timestamps,
+      const std::vector<ImuSample> &imu, MotionMethod method,
+      const Eigen::Matrix4d &T_vehicle_to_world,
+      const std::vector<GnssSample> &gnss = std::vector<GnssSample>(),
+      const std::vector<OdomSample> &odom = std::vector<OdomSample>(),
+      const Eigen::Vector3d &v0_vehicle = Eigen::Vector3d::Zero(),
+      bool motionEnable = true);
+
+  /**
+   * @brief wgs84ToEnu: Converts a WGS84 geodetic coordinate (lat/lon in
+   * degrees, height in metres) to local ENU metres (East, North, Up) relative
+   * to a reference origin (lat0/lon0/h0). Take the first GNSS fix as the origin,
+   * then feed the returned vector into GnssSample{x=E, y=N, z=U} for GNSS_TRANS
+   * motion compensation.
+   */
+  static Eigen::Vector3d wgs84ToEnu(double lat_deg, double lon_deg, double h,
+                                    double lat0_deg, double lon0_deg, double h0);
+
+  /**
+   * @brief motionCompensate: Deskews a scan into the scan-start frame.
+   * Rotation always comes from the IMU gyro; translation comes from the chosen
+   * MotionMethod:
+   *   - GNSS_TRANS   : GNSS position delta (needs @p gnss and, for world->vehicle
+   *                    rotation, @p R_vehicle_from_world = vehicle-start orientation)
+   *   - ODOM_TRANS   : integrated odometer velocity (needs @p odom, vehicle frame)
+   *   - IMU_ACC_TRANS: double-integrated IMU accel (needs ImuSample accel +
+   *                    @p v0_vehicle, the vehicle-frame velocity at scan start)
+   * Gyro/accel must already be axis-aligned to the vehicle/LiDAR frame. Unused
+   * source vectors may be left empty (defaulted).
    */
   static void
   motionCompensate(CloudType::Ptr &cloud, const std::vector<double> &timestamps,
-                   const std::vector<ImuSample> &imu,
-                   const std::vector<GnssSample> &gnss,
+                   const std::vector<ImuSample> &imu, MotionMethod method,
+                   const std::vector<GnssSample> &gnss =
+                       std::vector<GnssSample>(),
+                   const std::vector<OdomSample> &odom =
+                       std::vector<OdomSample>(),
                    const Eigen::Matrix3d &R_vehicle_from_world =
-                       Eigen::Matrix3d::Identity());
+                       Eigen::Matrix3d::Identity(),
+                   const Eigen::Vector3d &v0_vehicle =
+                       Eigen::Vector3d::Zero());
 
   /**
    * @brief GICP: GICP registration

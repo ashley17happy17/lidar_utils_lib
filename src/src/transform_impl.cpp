@@ -136,15 +136,13 @@ ImuRotationInfo integrateImuGyro(const std::vector<ImuSample> &imu,
 }
 
 // ---------------------------------------------------------------------------
-// Turn GNSS positions into the scan's relative translation in vehicle frame.
+// Translation source #1: GNSS position delta over the scan (linear).
 // Reference: imageProjection.cpp::odomDeskewInfo()
 // ---------------------------------------------------------------------------
-GnssMotionInfo transformGnssToVehicle(const std::vector<GnssSample> &gnss,
-                                      double timeScanCur, double timeScanEnd,
-                                      const Eigen::Matrix3d &R_vehicle_from_world) {
-  GnssMotionInfo info;
-  info.timeScanCur = timeScanCur;
-  info.timeScanEnd = timeScanEnd;
+TranslationInfo buildTranslationGnss(const std::vector<GnssSample> &gnss,
+                                     double timeScanCur, double timeScanEnd,
+                                     const Eigen::Matrix3d &R_vehicle_from_world) {
+  TranslationInfo info;
   if (gnss.size() < 2 || timeScanEnd <= timeScanCur)
     return info;
 
@@ -178,10 +176,105 @@ GnssMotionInfo transformGnssToVehicle(const std::vector<GnssSample> &gnss,
   if (!interpAt(timeScanCur, pBegin) || !interpAt(timeScanEnd, pEnd))
     return info;
 
-  // Relative movement over the scan, rotated from world into the vehicle
-  // (scan-start) frame so it lives in the same frame as the LiDAR points.
-  info.transIncre = R_vehicle_from_world * (pEnd - pBegin);
+  // Two-sample trajectory: 0 at scan start, full delta (world -> vehicle) at
+  // scan end. GNSS is typically ~10 Hz, so this is effectively linear across
+  // the scan; findTranslation() interpolates it per point.
+  info.time = {timeScanCur, timeScanEnd};
+  info.pos = {Eigen::Vector3d::Zero(), R_vehicle_from_world * (pEnd - pBegin)};
   info.available = true;
+  return info;
+}
+
+// ---------------------------------------------------------------------------
+// Translation source #2: integrate odometer velocity (vehicle frame).
+// ---------------------------------------------------------------------------
+TranslationInfo buildTranslationOdom(const std::vector<OdomSample> &odom,
+                                     double timeScanCur, double timeScanEnd) {
+  TranslationInfo info;
+  if (odom.empty())
+    return info;
+
+  int ptr = 0;
+  Eigen::Vector3d pos = Eigen::Vector3d::Zero();
+  double prevT = 0.0;
+  Eigen::Vector3d prevV = Eigen::Vector3d::Zero();
+
+  for (const OdomSample &s : odom) {
+    if (s.time < timeScanCur - 0.01)
+      continue;
+    if (s.time > timeScanEnd + 0.01)
+      break;
+
+    Eigen::Vector3d v(s.vx, s.vy, s.vz);
+    if (ptr == 0) {
+      info.time.push_back(s.time);
+      info.pos.push_back(Eigen::Vector3d::Zero());
+      prevT = s.time;
+      prevV = v;
+      ++ptr;
+      continue;
+    }
+
+    // Trapezoidal integration of velocity into position.
+    double dt = s.time - prevT;
+    pos += 0.5 * (v + prevV) * dt;
+    info.time.push_back(s.time);
+    info.pos.push_back(pos);
+    prevT = s.time;
+    prevV = v;
+    ++ptr;
+  }
+
+  info.available = ptr > 1;
+  return info;
+}
+
+// ---------------------------------------------------------------------------
+// Translation source #3: double-integrate IMU accel, seeded with v0.
+// The accel is assumed gravity-removed and in the vehicle frame. The velocity
+// seed v0 is required because the accelerometer alone cannot recover it.
+// ---------------------------------------------------------------------------
+TranslationInfo buildTranslationImuAcc(const std::vector<ImuSample> &imu,
+                                       double timeScanCur, double timeScanEnd,
+                                       const Eigen::Vector3d &v0_vehicle) {
+  TranslationInfo info;
+  if (imu.empty())
+    return info;
+
+  int ptr = 0;
+  Eigen::Vector3d pos = Eigen::Vector3d::Zero();
+  Eigen::Vector3d vel = v0_vehicle;
+  double prevT = 0.0;
+  Eigen::Vector3d prevA = Eigen::Vector3d::Zero();
+
+  for (const ImuSample &s : imu) {
+    if (s.time < timeScanCur - 0.01)
+      continue;
+    if (s.time > timeScanEnd + 0.01)
+      break;
+
+    Eigen::Vector3d a(s.accX, s.accY, s.accZ);
+    if (ptr == 0) {
+      info.time.push_back(s.time);
+      info.pos.push_back(Eigen::Vector3d::Zero());
+      prevT = s.time;
+      prevA = a;
+      ++ptr;
+      continue;
+    }
+
+    // p += v*dt + 0.5*a*dt^2 ;  v += 0.5*(a+a_prev)*dt  (trapezoidal velocity).
+    double dt = s.time - prevT;
+    pos += vel * dt + 0.5 * prevA * dt * dt;
+    vel += 0.5 * (a + prevA) * dt;
+    info.time.push_back(s.time);
+    info.pos.push_back(pos);
+    prevT = s.time;
+    prevA = a;
+    ++ptr;
+  }
+
+  info.available = ptr > 1;
   return info;
 }
 
@@ -222,25 +315,31 @@ static void findRotation(const ImuRotationInfo &imuInfo, double pointTime,
 }
 
 // ---------------------------------------------------------------------------
-// Interpolate the GNSS relative translation at a scan-relative time.
+// Interpolate the translation trajectory at an absolute point time.
 // Reference: imageProjection.cpp::findPosition()
 // ---------------------------------------------------------------------------
-static void findPosition(const GnssMotionInfo &gnssInfo, double relTime,
-                         double &posXCur, double &posYCur, double &posZCur) {
-  posXCur = 0.0;
-  posYCur = 0.0;
-  posZCur = 0.0;
-  if (!gnssInfo.available)
-    return;
+static Eigen::Vector3d findTranslation(const TranslationInfo &info,
+                                       double pointTime) {
+  const int n = static_cast<int>(info.time.size());
+  if (n == 0)
+    return Eigen::Vector3d::Zero();
 
-  double duration = gnssInfo.timeScanEnd - gnssInfo.timeScanCur;
-  if (duration <= 0.0)
-    return;
+  int front = 0;
+  while (front < n) {
+    if (pointTime < info.time[front])
+      break;
+    ++front;
+  }
 
-  double ratio = relTime / duration;
-  posXCur = ratio * gnssInfo.transIncre.x();
-  posYCur = ratio * gnssInfo.transIncre.y();
-  posZCur = ratio * gnssInfo.transIncre.z();
+  if (front == 0 || front == n) {
+    // Before the first / after the last sample: clamp to the nearest end.
+    return info.pos[std::min(front, n - 1)];
+  }
+
+  int back = front - 1;
+  double denom = info.time[front] - info.time[back];
+  double ratioFront = denom > 0.0 ? (pointTime - info.time[back]) / denom : 0.0;
+  return info.pos[back] + (info.pos[front] - info.pos[back]) * ratioFront;
 }
 
 // Build a 4x4 transform from ZYX Euler angles (matching executeMotionAndDG's
@@ -266,8 +365,11 @@ static Eigen::Matrix4d makeTransform(double rotX, double rotY, double rotZ,
 void executeMotionComensation(CloudType::Ptr &cloud,
                               const std::vector<double> &timestamps,
                               const std::vector<ImuSample> &imu,
+                              MotionMethod method,
                               const std::vector<GnssSample> &gnss,
-                              const Eigen::Matrix3d &R_vehicle_from_world) {
+                              const std::vector<OdomSample> &odom,
+                              const Eigen::Matrix3d &R_vehicle_from_world,
+                              const Eigen::Vector3d &v0_vehicle) {
   if (!cloud || cloud->empty())
     return;
 
@@ -285,46 +387,60 @@ void executeMotionComensation(CloudType::Ptr &cloud,
     timeScanEnd = std::max(timeScanEnd, t);
   }
 
-  // 1. Integrate the gyro into cumulative rotation (imuDeskewInfo).
-  ImuRotationInfo imuInfo = integrateImuGyro(imu, timeScanCur, timeScanEnd);
+  // 1. Rotation is always the integrated gyro (imuDeskewInfo).
+  ImuRotationInfo rotInfo = integrateImuGyro(imu, timeScanCur, timeScanEnd);
 
-  // 2. Turn GNSS positions into a scan-relative translation (odomDeskewInfo).
-  GnssMotionInfo gnssInfo = transformGnssToVehicle(gnss, timeScanCur,
-                                                   timeScanEnd,
-                                                   R_vehicle_from_world);
+  // 2. Translation comes from the selected source (odomDeskewInfo analog).
+  TranslationInfo transInfo;
+  switch (method) {
+  case MotionMethod::GNSS_TRANS:
+    transInfo = buildTranslationGnss(gnss, timeScanCur, timeScanEnd,
+                                     R_vehicle_from_world);
+    break;
+  case MotionMethod::ODOM_TRANS:
+    transInfo = buildTranslationOdom(odom, timeScanCur, timeScanEnd);
+    break;
+  case MotionMethod::IMU_ACC_TRANS:
+    transInfo = buildTranslationImuAcc(imu, timeScanCur, timeScanEnd,
+                                       v0_vehicle);
+    break;
+  }
 
   // If neither source is usable, leave the cloud untouched.
-  if (!imuInfo.available && !gnssInfo.available)
+  if (!rotInfo.available && !transInfo.available)
     return;
 
-  // Reference = pose at the very start of the scan (relTime = 0). Every point
-  // is re-based onto this frame, so the deskewed cloud is defined at the
-  // scan-start pose (ready for subsequent direct georeferencing).
+  // Reference = pose at the very start of the scan. Every point is re-based
+  // onto this frame, so the deskewed cloud is defined at the scan-start pose
+  // (ready for subsequent direct georeferencing).
   double rot0X = 0.0, rot0Y = 0.0, rot0Z = 0.0;
-  if (imuInfo.available)
-    findRotation(imuInfo, timeScanCur, rot0X, rot0Y, rot0Z);
+  if (rotInfo.available)
+    findRotation(rotInfo, timeScanCur, rot0X, rot0Y, rot0Z);
+  const Eigen::Vector3d pos0 =
+      transInfo.available ? findTranslation(transInfo, timeScanCur)
+                          : Eigen::Vector3d::Zero();
   const Eigen::Matrix4d transStartInverse =
-      makeTransform(rot0X, rot0Y, rot0Z, 0.0, 0.0, 0.0).inverse();
+      makeTransform(rot0X, rot0Y, rot0Z, pos0.x(), pos0.y(), pos0.z())
+          .inverse();
 
   // Point-by-point Interpolation
   for (size_t i = 0; i < num_points; ++i) {
     const double pointTime = timestamps[i];
-    const double relTime = pointTime - timeScanCur;
 
     // Rotation Matrix Preparation (integrated gyro, interpolated to pointTime).
     double rotXCur = 0.0, rotYCur = 0.0, rotZCur = 0.0;
-    if (imuInfo.available)
-      findRotation(imuInfo, pointTime, rotXCur, rotYCur, rotZCur);
+    if (rotInfo.available)
+      findRotation(rotInfo, pointTime, rotXCur, rotYCur, rotZCur);
 
-    // Translation Vector Preparation (GNSS relative motion, ratio * incre).
-    double posXCur = 0.0, posYCur = 0.0, posZCur = 0.0;
-    if (gnssInfo.available)
-      findPosition(gnssInfo, relTime, posXCur, posYCur, posZCur);
+    // Translation Vector Preparation (chosen source, interpolated to pointTime).
+    Eigen::Vector3d pos = transInfo.available
+                              ? findTranslation(transInfo, pointTime)
+                              : Eigen::Vector3d::Zero();
 
     // Form the Transformation Matrix (this point's pose within the scan),
     // then express it relative to the scan-start pose.
     const Eigen::Matrix4d transFinal =
-        makeTransform(rotXCur, rotYCur, rotZCur, posXCur, posYCur, posZCur);
+        makeTransform(rotXCur, rotYCur, rotZCur, pos.x(), pos.y(), pos.z());
     const Eigen::Matrix4d transBt = transStartInverse * transFinal;
 
     // Direct Gereferencing (deskew this point into the scan-start frame).
@@ -336,6 +452,71 @@ void executeMotionComensation(CloudType::Ptr &cloud,
     cloud->points[i].y = ptd.y();
     cloud->points[i].z = ptd.z();
   }
+}
+
+// ---------------------------------------------------------------------------
+// WGS84 geodetic -> local ENU (East, North, Up) metres about a reference.
+// Raw GNSS (lat/lon/h) must be projected to a metric Cartesian frame before it
+// can be used for GNSS_TRANS motion compensation; ENU is the natural choice.
+// ---------------------------------------------------------------------------
+Eigen::Vector3d executeWgs84ToEnu(double lat_deg, double lon_deg, double h,
+                                  double lat0_deg, double lon0_deg, double h0) {
+  constexpr double a = 6378137.0;           // WGS84 semi-major axis [m]
+  constexpr double f = 1.0 / 298.257223563; // flattening
+  const double e2 = f * (2.0 - f);          // first eccentricity squared
+
+  auto deg2rad = [](double d) { return d * M_PI / 180.0; };
+
+  // Geodetic (rad, rad, m) -> ECEF (m).
+  auto geodeticToEcef = [&](double lat, double lon, double alt) {
+    double slat = std::sin(lat), clat = std::cos(lat);
+    double slon = std::sin(lon), clon = std::cos(lon);
+    double N = a / std::sqrt(1.0 - e2 * slat * slat);
+    return Eigen::Vector3d((N + alt) * clat * clon, (N + alt) * clat * slon,
+                           (N * (1.0 - e2) + alt) * slat);
+  };
+
+  const double lat = deg2rad(lat_deg), lon = deg2rad(lon_deg);
+  const double lat0 = deg2rad(lat0_deg), lon0 = deg2rad(lon0_deg);
+
+  const Eigen::Vector3d d =
+      geodeticToEcef(lat, lon, h) - geodeticToEcef(lat0, lon0, h0);
+
+  const double slat0 = std::sin(lat0), clat0 = std::cos(lat0);
+  const double slon0 = std::sin(lon0), clon0 = std::cos(lon0);
+
+  // Rotate the ECEF difference into the origin's local tangent plane (ENU).
+  Eigen::Matrix3d R;
+  R << -slon0,          clon0,         0.0,
+       -slat0 * clon0, -slat0 * slon0, clat0,
+        clat0 * clon0,  clat0 * slon0, slat0;
+
+  return R * d; // (East, North, Up) [m]
+}
+
+// ---------------------------------------------------------------------------
+// Estimate world-frame velocity at time t by finite-differencing the GNSS
+// trajectory (used to seed IMU_ACC_TRANS, whose accel cannot recover v0).
+// ---------------------------------------------------------------------------
+Eigen::Vector3d estimateGnssVelocity(const std::vector<GnssSample> &gnss,
+                                     double t) {
+  if (gnss.size() < 2)
+    return Eigen::Vector3d::Zero();
+
+  // Use the pair of samples straddling t (clamped to the ends).
+  size_t i = 1;
+  while (i < gnss.size() && gnss[i].time < t)
+    ++i;
+  if (i >= gnss.size())
+    i = gnss.size() - 1;
+
+  const GnssSample &a = gnss[i - 1];
+  const GnssSample &b = gnss[i];
+  double dt = b.time - a.time;
+  if (dt <= 0.0)
+    return Eigen::Vector3d::Zero();
+
+  return Eigen::Vector3d((b.x - a.x) / dt, (b.y - a.y) / dt, (b.z - a.z) / dt);
 }
 
 } // namespace internal

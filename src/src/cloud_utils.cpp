@@ -1,4 +1,5 @@
 #include "lidar_utils/cloud_utils.hpp"
+#include <algorithm>
 #include "internal/common_impl.hpp"
 #include "internal/eop_impl.hpp"
 #include "internal/filter_impl.hpp"
@@ -155,13 +156,53 @@ void CloudUtils::motionCompensateAndDG(CloudType::Ptr &cloud,
                                motionEnable);
 }
 
+Eigen::Vector3d CloudUtils::wgs84ToEnu(double lat_deg, double lon_deg, double h,
+                                       double lat0_deg, double lon0_deg,
+                                       double h0) {
+  return internal::executeWgs84ToEnu(lat_deg, lon_deg, h, lat0_deg, lon0_deg,
+                                     h0);
+}
+
 void CloudUtils::motionCompensate(CloudType::Ptr &cloud,
                                   const std::vector<double> &timestamps,
                                   const std::vector<ImuSample> &imu,
+                                  MotionMethod method,
                                   const std::vector<GnssSample> &gnss,
-                                  const Eigen::Matrix3d &R_vehicle_from_world) {
-  internal::executeMotionComensation(cloud, timestamps, imu, gnss,
-                                     R_vehicle_from_world);
+                                  const std::vector<OdomSample> &odom,
+                                  const Eigen::Matrix3d &R_vehicle_from_world,
+                                  const Eigen::Vector3d &v0_vehicle) {
+  internal::executeMotionComensation(cloud, timestamps, imu, method, gnss, odom,
+                                     R_vehicle_from_world, v0_vehicle);
+}
+
+void CloudUtils::motionCompensateAndDG(
+    CloudType::Ptr &cloud, const std::vector<double> &timestamps,
+    const std::vector<ImuSample> &imu, MotionMethod method,
+    const Eigen::Matrix4d &T_vehicle_to_world,
+    const std::vector<GnssSample> &gnss, const std::vector<OdomSample> &odom,
+    const Eigen::Vector3d &v0_vehicle, bool motionEnable) {
+  // world -> vehicle rotation for the GNSS translation, derived from the pose
+  // so the caller never has to build R_vehicle_from_world itself.
+  const Eigen::Matrix3d R_vehicle_from_world =
+      T_vehicle_to_world.block<3, 3>(0, 0).transpose();
+
+  if (motionEnable) {
+    // Seed the IMU-accel velocity from GNSS when the caller left it unset.
+    Eigen::Vector3d v0 = v0_vehicle;
+    if (method == MotionMethod::IMU_ACC_TRANS && v0.isZero() &&
+        gnss.size() >= 2 && !timestamps.empty()) {
+      double timeScanCur =
+          *std::min_element(timestamps.begin(), timestamps.end());
+      v0 = R_vehicle_from_world *
+           internal::estimateGnssVelocity(gnss, timeScanCur);
+    }
+    internal::executeMotionComensation(cloud, timestamps, imu, method, gnss,
+                                       odom, R_vehicle_from_world, v0);
+  }
+
+  // Georeference the (deskewed) cloud into the world frame.
+  Eigen::Matrix4d T = T_vehicle_to_world;
+  internal::executeDirectGeoreference(cloud, cloud, T);
 }
 
 /***************************
