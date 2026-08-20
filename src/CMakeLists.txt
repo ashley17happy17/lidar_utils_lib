@@ -10,18 +10,12 @@ find_package(Eigen3 REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(PDAL REQUIRED)
 
-# Fetch small_gicp
-include(FetchContent)
-FetchContent_Declare(small_gicp
-  GIT_REPOSITORY https://github.com/koide3/small_gicp.git
-  GIT_TAG master
-)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(BUILD_WITH_OPENMP ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(small_gicp)
+# small_gicp：已 vendor 進 third_party/，建置不需要網路
+# 版本與更新方式見 third_party/small_gicp/README.upstream.md
+add_subdirectory(third_party/small_gicp)
 
-# 蒐集所有實作原始碼
-file(GLOB_RECURSE SRC_FILES "src/*.cpp")
+# 蒐集所有實作原始碼（third_party 不在此範圍內，由其自己的 CMakeLists 負責）
+file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.cpp")
 
 # 建立靜態程式庫
 add_library(lidar_utils STATIC ${SRC_FILES})
