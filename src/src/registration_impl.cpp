@@ -1,4 +1,5 @@
 #include "internal/registration_impl.hpp"
+#include <chrono>
 #include <pcl/common/transforms.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/kdtree/kdtree_flann.h>

@@ -19,6 +19,7 @@ file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.cpp")
 
 # 建立靜態程式庫
 add_library(lidar_utils STATIC ${SRC_FILES})
+set_target_properties(lidar_utils PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # 設定頭文件路徑：將 include 設為 PUBLIC 分享給外部，src 設為 PRIVATE 鎖在內部
 target_include_directories(lidar_utils
